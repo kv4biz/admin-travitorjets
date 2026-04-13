@@ -2,35 +2,41 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
+import { FieldError } from "@/components/ui/field";
 import { updatePassword } from "@/lib/auth/admin-auth";
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormData,
+} from "@/lib/validations";
 
 export function ResetPasswordForm() {
   const router = useRouter();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: "onChange",
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
-
+  const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true);
 
     try {
-      const result = await updatePassword(password);
+      const result = await updatePassword(data.password);
 
       if (!result.success) {
         toast.error(result.error || "Failed to reset password");
@@ -39,7 +45,7 @@ export function ResetPasswordForm() {
       }
 
       toast.success("Password reset successfully");
-      router.push("/auth/login");
+      router.push("/login");
     } catch {
       toast.error("An unexpected error occurred");
       setIsLoading(false);
@@ -47,18 +53,16 @@ export function ResetPasswordForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="password">New Password</Label>
         <PasswordInput
           id="password"
           placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
           disabled={isLoading}
-          minLength={8}
+          {...register("password")}
         />
+        <FieldError>{errors.password?.message}</FieldError>
       </div>
 
       <div className="space-y-2">
@@ -66,15 +70,18 @@ export function ResetPasswordForm() {
         <PasswordInput
           id="confirmPassword"
           placeholder="••••••••"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
           disabled={isLoading}
-          minLength={8}
+          {...register("confirmPassword")}
         />
+        <FieldError>{errors.confirmPassword?.message}</FieldError>
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+      <Button
+        type="submit"
+        className="w-full"
+        size="lg"
+        disabled={isLoading || !isValid}
+      >
         {isLoading ? "Resetting..." : "Reset password"}
       </Button>
     </form>

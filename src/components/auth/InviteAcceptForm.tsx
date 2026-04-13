@@ -1,33 +1,55 @@
+//src/components/auth/InviteAcceptForm.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
+import { FieldError } from "@/components/ui/field";
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormData,
+} from "@/lib/validations";
 
 export function InviteAcceptForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [invitationValid, setInvitationValid] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: "onChange",
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
   useEffect(() => {
     const tokenParam = searchParams.get("token");
     if (!tokenParam) {
-      setError("Invalid invitation link");
-      setIsLoading(false);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => {
+        setError("Invalid invitation link");
+        setIsLoading(false);
+      }, 0);
       return;
     }
 
-    setToken(tokenParam);
+    setTimeout(() => setToken(tokenParam), 0);
 
     const validateInvitation = async () => {
       try {
@@ -35,55 +57,49 @@ export function InviteAcceptForm() {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          setError(data.error || "Invalid or expired invitation");
-          setIsLoading(false);
+          setTimeout(() => {
+            setError(data.error || "Invalid or expired invitation");
+            setIsLoading(false);
+          }, 0);
           return;
         }
 
-        setEmail(data.data.email);
-        setInvitationValid(true);
-        setIsLoading(false);
+        setTimeout(() => {
+          setEmail(data.data.email);
+          setInvitationValid(true);
+          setIsLoading(false);
+        }, 0);
       } catch {
-        setError("Failed to validate invitation");
-        setIsLoading(false);
+        setTimeout(() => {
+          setError("Failed to validate invitation");
+          setIsLoading(false);
+        }, 0);
       }
     };
 
     validateInvitation();
   }, [searchParams]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
-
+  const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true);
 
     try {
       const response = await fetch(`/api/invitations/${token}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: data.password }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
-      if (!response.ok || !data.success) {
-        toast.error(data.error || "Failed to accept invitation");
+      if (!response.ok || !responseData.success) {
+        toast.error(responseData.error || "Failed to accept invitation");
         setIsLoading(false);
         return;
       }
 
       toast.success("Account created successfully");
-      router.push("/auth/login");
+      router.push("/login");
     } catch {
       toast.error("An unexpected error occurred");
       setIsLoading(false);
@@ -105,7 +121,7 @@ export function InviteAcceptForm() {
           {error}
         </div>
         <Button
-          onClick={() => router.push("/auth/login")}
+          onClick={() => router.push("/login")}
           variant="outline"
           className="w-full"
         >
@@ -116,7 +132,7 @@ export function InviteAcceptForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -133,12 +149,10 @@ export function InviteAcceptForm() {
         <PasswordInput
           id="password"
           placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
           disabled={isLoading}
-          minLength={8}
+          {...register("password")}
         />
+        <FieldError>{errors.password?.message}</FieldError>
       </div>
 
       <div className="space-y-2">
@@ -146,15 +160,18 @@ export function InviteAcceptForm() {
         <PasswordInput
           id="confirmPassword"
           placeholder="••••••••"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
           disabled={isLoading}
-          minLength={8}
+          {...register("confirmPassword")}
         />
+        <FieldError>{errors.confirmPassword?.message}</FieldError>
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+      <Button
+        type="submit"
+        className="w-full"
+        size="lg"
+        disabled={isLoading || !isValid}
+      >
         {isLoading ? "Creating account..." : "Accept invitation"}
       </Button>
     </form>

@@ -1,14 +1,24 @@
+//src/app/layout.tsx
 import type { Metadata } from "next";
-import { Montserrat, Roboto_Mono, Inter } from "next/font/google";
+import { Inter, Source_Serif_4, JetBrains_Mono, Geist } from "next/font/google";
+
 import "./globals.css";
-import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+import "./globals.css";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { cn } from "@/lib/utils";
 
-const fontSerif = Roboto_Mono({
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
+const fontSerif = Source_Serif_4({
   subsets: ["latin"],
   variable: "--font-serif",
+});
+
+const fontMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -22,17 +32,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={cn(
-              "h-full",
-              "antialiased",
-              fontSerif.variable,
-            , "font-sans", inter.variable)}
-    >
-      <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster />
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+      <body
+        className={`${geist.variable} ${fontSerif.variable} ${fontMono.variable} antialiased min-h-full flex flex-col`}
+        suppressHydrationWarning
+      >
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

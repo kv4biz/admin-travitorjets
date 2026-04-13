@@ -2,26 +2,43 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+// import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
+import { FieldError } from "@/components/ui/field";
 import { signInWithEmail } from "@/lib/auth/admin-auth";
+import { loginSchema, type LoginFormData } from "@/lib/validations";
 
 export function AdminLoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
 
     try {
-      const result = await signInWithEmail({ email, password });
+      const result = await signInWithEmail({
+        email: data.email,
+        password: data.password,
+      });
 
       if (!result.success) {
         toast.error(result.error || "Failed to sign in");
@@ -39,18 +56,17 @@ export function AdminLoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
           placeholder="admin@traviatorjets.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
           disabled={isLoading}
+          {...register("email")}
         />
+        <FieldError>{errors.email?.message}</FieldError>
       </div>
 
       <div className="space-y-2">
@@ -58,23 +74,27 @@ export function AdminLoginForm() {
         <PasswordInput
           id="password"
           placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
           disabled={isLoading}
+          {...register("password")}
         />
+        <FieldError>{errors.password?.message}</FieldError>
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+      <Button
+        type="submit"
+        className="w-full"
+        size="lg"
+        disabled={isLoading || !isValid}
+      >
         {isLoading ? "Signing in..." : "Sign in"}
       </Button>
-
+      {/* 
       <Link
         className="mt-6 block text-center text-muted-foreground text-sm hover:text-foreground"
-        href="/auth/forgot-password"
+        href="/forgot-password"
       >
         Forgot your password?
-      </Link>
+      </Link> */}
     </form>
   );
 }

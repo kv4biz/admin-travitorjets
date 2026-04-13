@@ -6,11 +6,15 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  const publishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
   // With Fluid compute, don't put this client in a global environment
   // variable. Always create a new one on each request.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    publishableKey!,
     {
       cookies: {
         getAll() {
@@ -41,12 +45,15 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   // Skip auth checks for public routes
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
+  const isAuthRoute =
+    request.nextUrl.pathname.startsWith("/") &&
+    !request.nextUrl.pathname.startsWith("/api") &&
+    !request.nextUrl.pathname.startsWith("/dashboard");
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
 
   if (!user && !isAuthRoute && !isApiRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
@@ -61,7 +68,7 @@ export async function updateSession(request: NextRequest) {
     // Only staff and manager roles can access the admin dashboard
     if (!profile || (profile.role !== "staff" && profile.role !== "manager")) {
       const url = request.nextUrl.clone();
-      url.pathname = "/auth/login";
+      url.pathname = "/login";
       url.searchParams.set("error", "unauthorized");
       return NextResponse.redirect(url);
     }

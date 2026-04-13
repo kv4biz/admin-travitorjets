@@ -1,47 +1,48 @@
-import { createClient } from '@/lib/client'
+import { createClient } from "@/lib/client";
 
 export interface SignInCredentials {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface SignInResult {
-  success: boolean
-  error?: string
+  success: boolean;
+  error?: string;
 }
 
 export interface PasswordResetResult {
-  success: boolean
-  error?: string
+  success: boolean;
+  error?: string;
 }
 
 /**
  * Sign in with email and password
  */
 export async function signInWithEmail(
-  credentials: SignInCredentials
+  credentials: SignInCredentials,
 ): Promise<SignInResult> {
   try {
-    const supabase = createClient()
-    
+    const supabase = createClient();
+
     const { error } = await supabase.auth.signInWithPassword({
       email: credentials.email,
       password: credentials.password,
-    })
+    });
 
     if (error) {
       return {
         success: false,
         error: error.message,
-      }
+      };
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
-    }
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
   }
 }
 
@@ -50,22 +51,23 @@ export async function signInWithEmail(
  */
 export async function signOut(): Promise<SignInResult> {
   try {
-    const supabase = createClient()
-    const { error } = await supabase.auth.signOut()
+    const supabase = createClient();
+    const { error } = await supabase.auth.signOut();
 
     if (error) {
       return {
         success: false,
         error: error.message,
-      }
+      };
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
-    }
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
   }
 }
 
@@ -73,28 +75,29 @@ export async function signOut(): Promise<SignInResult> {
  * Send password reset email
  */
 export async function resetPasswordForEmail(
-  email: string
+  email: string,
 ): Promise<PasswordResetResult> {
   try {
-    const supabase = createClient()
-    
+    const supabase = createClient();
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    })
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
 
     if (error) {
       return {
         success: false,
         error: error.message,
-      }
+      };
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
-    }
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
   }
 }
 
@@ -102,27 +105,28 @@ export async function resetPasswordForEmail(
  * Update user password (must be called after clicking reset link)
  */
 export async function updatePassword(
-  newPassword: string
+  newPassword: string,
 ): Promise<PasswordResetResult> {
   try {
-    const supabase = createClient()
-    
+    const supabase = createClient();
+
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
-    })
+    });
 
     if (error) {
       return {
         success: false,
         error: error.message,
-      }
+      };
     }
 
-    return { success: true }
+    return { success: true };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
-    }
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
   }
 }

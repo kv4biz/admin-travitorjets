@@ -7,3 +7,4 @@ export * from "./invitation.schema";
 export * from "./staff.schema";
 export * from "./request.schema";
 export * from "./message.schema";
+export * from "./auth.schema";
