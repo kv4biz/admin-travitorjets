@@ -1,36 +1,61 @@
-//src/app/api/analytics/overview/route.ts
-import { withManagerAuth, apiSuccess, apiError } from "@/lib/api-utils";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/app/api/analytics/overview/route.ts
+import { NextRequest } from "next/server";
+import { withAdminAuth, apiSuccess } from "@/lib/api-utils";
 
-export async function GET() {
-  return withManagerAuth(async (_, supabase) => {
-    const { count: openRequests, error: openError } = await supabase
+export async function GET(request: NextRequest) {
+  return withAdminAuth(async (user, supabase) => {
+    const now = new Date().toISOString();
+
+    // Assigned to current user (active)
+    const { count: assigned } = await supabase
       .from("requests")
       .select("id", { count: "exact", head: true })
-      .in("status", ["open", "assigned", "confirmed"]);
+      .eq("assigned_staff_id", user.id)
+      .neq("status", "closed");
 
-    if (openError) return apiError(openError.message, 500);
-
-    const { count: recentActivity, error: actError } = await supabase
-      .from("admin_activities")
+    // Open & unassigned
+    const { count: unassigned } = await supabase
+      .from("requests")
       .select("id", { count: "exact", head: true })
-      .gte(
-        "created_at",
-        new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      );
+      .is("assigned_staff_id", null)
+      .eq("status", "open");
 
-    if (actError) return apiError(actError.message, 500);
+    // Upcoming admin empty legs
+    const { count: adminEmptyLegs } = await supabase
+      .from("empty_legs")
+      .select("id", { count: "exact", head: true })
+      .eq("source", "admin")
+      .gte("departure_time", now);
 
-    const { count: pendingPayments, error: pendingError } = await supabase
+    // Upcoming pexjet empty legs
+    const { count: pexjetEmptyLegs } = await supabase
+      .from("empty_legs")
+      .select("id", { count: "exact", head: true })
+      .eq("source", "pexjet")
+      .gte("departure_time", now);
+
+    // Pending invoices created by this admin
+    const { count: pendingInvoices } = await supabase
       .from("invoices")
       .select("id", { count: "exact", head: true })
-      .eq("status", "sent");
+      .eq("status", "sent")
+      .eq("created_by", user.id);
 
-    if (pendingError) return apiError(pendingError.message, 500);
+    // Paid & confirmed invoices created by this admin
+    const { count: paidInvoices } = await supabase
+      .from("invoices")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["paid", "confirmed"])
+      .eq("created_by", user.id);
 
     return apiSuccess({
-      open_requests: openRequests || 0,
-      recent_activity: recentActivity || 0,
-      pending_payments: pendingPayments || 0,
+      assigned: assigned ?? 0,
+      unassigned: unassigned ?? 0,
+      adminEmptyLegs: adminEmptyLegs ?? 0,
+      pexjetEmptyLegs: pexjetEmptyLegs ?? 0,
+      pendingInvoices: pendingInvoices ?? 0,
+      paidInvoices: paidInvoices ?? 0,
     });
   });
 }

@@ -9,17 +9,12 @@ export const createAircraftListingSchema = z.object({
   year: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
   price: z.number().positive().optional(),
   currency_code: z.string().default("USD"),
-  images: z.array(z.any()).optional(),
-  specifications: z.record(z.any(), z.any()).optional(),
+  images: z.array(z.string().url()).optional(),
+  documents: z.array(z.string().url()).optional(),
   status: z.enum(["active", "sold", "inactive"]).default("active"),
 });
 
-export const updateAircraftListingSchema =
-  createAircraftListingSchema.partial();
+export const updateAircraftListingSchema = createAircraftListingSchema.partial();
 
-export type CreateAircraftListingInput = z.infer<
-  typeof createAircraftListingSchema
->;
-export type UpdateAircraftListingInput = z.infer<
-  typeof updateAircraftListingSchema
->;
+export type CreateAircraftListingInput = z.infer<typeof createAircraftListingSchema>;
+export type UpdateAircraftListingInput = z.infer<typeof updateAircraftListingSchema>;

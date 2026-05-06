@@ -1,7 +1,8 @@
+//src/app/(auth)/login/page.tsx
 import { createClient } from "@/lib/server";
 import { redirect } from "next/navigation";
 import { AuthLayout } from "@/components/auth/AuthLayout";
-import { AdminLoginForm } from "@/components/auth/AdminLoginForm";
+import { LoginForm } from "@/components/auth/LoginForm";
 
 export default async function LoginPage() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function LoginPage() {
 
   return (
     <AuthLayout title="Login to TraviatorJets" subtitle="Admin Dashboard">
-      <AdminLoginForm />
+      <LoginForm />
     </AuthLayout>
   );
 }

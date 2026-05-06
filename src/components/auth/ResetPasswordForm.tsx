@@ -1,3 +1,4 @@
+//src/components/auth/ResetPasswordForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -14,6 +15,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordFormData,
 } from "@/lib/validations";
+import { content } from "@/lib/content";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -26,28 +28,22 @@ export function ResetPasswordForm() {
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
     mode: "onChange",
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { password: "", confirmPassword: "" },
   });
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true);
-
     try {
       const result = await updatePassword(data.password);
-
       if (!result.success) {
-        toast.error(result.error || "Failed to reset password");
+        toast.error(result.error || content.auth.toast.resetError);
         setIsLoading(false);
         return;
       }
-
-      toast.success("Password reset successfully");
+      toast.success(content.auth.toast.resetSuccess);
       router.push("/login");
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error(content.auth.toast.resetError);
       setIsLoading(false);
     }
   };
@@ -55,10 +51,12 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="password">New Password</Label>
+        <Label htmlFor="password">
+          {content.auth.resetPassword.newPasswordLabel}
+        </Label>
         <PasswordInput
           id="password"
-          placeholder="••••••••"
+          placeholder={content.auth.resetPassword.newPasswordPlaceholder}
           disabled={isLoading}
           {...register("password")}
         />
@@ -66,10 +64,12 @@ export function ResetPasswordForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Label htmlFor="confirmPassword">
+          {content.auth.resetPassword.confirmPasswordLabel}
+        </Label>
         <PasswordInput
           id="confirmPassword"
-          placeholder="••••••••"
+          placeholder={content.auth.resetPassword.confirmPasswordPlaceholder}
           disabled={isLoading}
           {...register("confirmPassword")}
         />
@@ -82,7 +82,7 @@ export function ResetPasswordForm() {
         size="lg"
         disabled={isLoading || !isValid}
       >
-        {isLoading ? "Resetting..." : "Reset password"}
+        {isLoading ? "Resetting..." : content.auth.resetPassword.submitButton}
       </Button>
     </form>
   );

@@ -1,0 +1,8 @@
+{
+  "cron": [
+    {
+      "path": "/api/empty-legs/sync",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}

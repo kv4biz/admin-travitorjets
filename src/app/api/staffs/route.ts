@@ -1,11 +1,6 @@
-//src/app/api/staffs/route.ts
+// src/app/api/staffs/route.ts
 import { NextRequest } from "next/server";
-import {
-  withManagerAuth,
-  apiSuccess,
-  apiError,
-  getPagination,
-} from "@/lib/api-utils";
+import { withManagerAuth, apiSuccess, apiError, getPagination } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   return withManagerAuth(async (_, supabase) => {
@@ -13,9 +8,8 @@ export async function GET(request: NextRequest) {
     const { from, to, page, limit } = getPagination(searchParams);
 
     const { data, error, count } = await supabase
-      .from("profiles")
+      .from("staff_view") // <-- use the view
       .select("*")
-      .in("role", ["staff", "manager"])
       .order("created_at", { ascending: false })
       .range(from, to);
 

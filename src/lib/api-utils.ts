@@ -1,3 +1,4 @@
+//src/lib/api-utils.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/server";
 import { User } from "@supabase/supabase-js";
@@ -9,10 +10,7 @@ type SupabaseClientType = SupabaseClient<Database>;
 /**
  * Success response
  */
-export function apiSuccess<T>(
-  data: T,
-  meta?: { page?: number; limit?: number; total?: number },
-) {
+export function apiSuccess<T>(data: T, meta?: { page?: number; limit?: number; total?: number }) {
   if (meta) {
     return NextResponse.json({ data, error: null, meta });
   }
@@ -29,9 +27,7 @@ export function apiError(message: string, status: number = 400) {
 /**
  * Parse JSON body safely
  */
-export async function parseBody<T>(
-  request: Request,
-): Promise<{ data: T | null; error: string | null }> {
+export async function parseBody<T>(request: Request): Promise<{ data: T | null; error: string | null }> {
   try {
     const body = await request.json();
     return { data: body as T, error: null };
@@ -45,10 +41,7 @@ export async function parseBody<T>(
  */
 export function getPagination(searchParams: URLSearchParams) {
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
-  const limit = Math.min(
-    100,
-    Math.max(1, parseInt(searchParams.get("limit") || "20")),
-  );
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20")));
   const from = (page - 1) * limit;
   const to = from + limit - 1;
   return { from, to, page, limit };
@@ -57,9 +50,7 @@ export function getPagination(searchParams: URLSearchParams) {
 /**
  * Base auth wrapper (checks authentication only)
  */
-export async function withAuth(
-  handler: (user: User, supabase: SupabaseClientType) => Promise<NextResponse>,
-): Promise<NextResponse> {
+export async function withAuth(handler: (user: User, supabase: SupabaseClientType) => Promise<NextResponse>): Promise<NextResponse> {
   try {
     const supabase = await createClient();
     const {
@@ -79,15 +70,9 @@ export async function withAuth(
 /**
  * Admin auth wrapper – requires role 'staff' or 'manager'
  */
-export async function withAdminAuth(
-  handler: (user: User, supabase: SupabaseClientType) => Promise<NextResponse>,
-): Promise<NextResponse> {
+export async function withAdminAuth(handler: (user: User, supabase: SupabaseClientType) => Promise<NextResponse>): Promise<NextResponse> {
   return withAuth(async (user, supabase) => {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
     if (error || !profile || !["staff", "manager"].includes(profile.role)) {
       return apiError("Forbidden: Admin access required", 403);
@@ -99,15 +84,9 @@ export async function withAdminAuth(
 /**
  * Manager auth wrapper – requires role 'manager'
  */
-export async function withManagerAuth(
-  handler: (user: User, supabase: SupabaseClientType) => Promise<NextResponse>,
-): Promise<NextResponse> {
+export async function withManagerAuth(handler: (user: User, supabase: SupabaseClientType) => Promise<NextResponse>): Promise<NextResponse> {
   return withAuth(async (user, supabase) => {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
     if (error || !profile || profile.role !== "manager") {
       return apiError("Forbidden: Manager access required", 403);

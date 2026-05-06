@@ -1,26 +1,24 @@
-//src/app/(auth)/callback/page.tsx
+// src/app/(auth)/callback/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/client";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
     async function handleCallback() {
-      const hash = typeof window !== "undefined" ? window.location.hash : "";
-      const params = new URLSearchParams(
-        hash.startsWith("#") ? hash.slice(1) : hash,
-      );
+      const hash = window.location.hash;
+      const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
 
       const accessToken = params.get("access_token");
       const refreshToken = params.get("refresh_token");
       const type = params.get("type");
 
       if (!accessToken || !refreshToken) {
-        console.error("Missing tokens in callback. Hash:", hash);
         router.replace("/login?error=invalid_callback");
         return;
       }
@@ -32,16 +30,18 @@ export default function AuthCallbackPage() {
       });
 
       if (error) {
-        console.error("Failed to set session:", error);
         router.replace("/login?error=callback_failed");
         return;
       }
 
-      if (type === "invite" || type === "recovery") {
+      if (type === "invite") {
+        router.replace("/onboarding");
+        return;
+      }
+      if (type === "recovery") {
         router.replace("/reset-password");
         return;
       }
-
       router.replace("/dashboard");
     }
 
@@ -49,6 +49,9 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div className="p-6 text-center text-muted-foreground">Signing you in…</div>
+    <div className="flex items-center justify-center h-screen">
+      <Spinner className="h-8 w-8" />
+      <span className="ml-3 text-muted-foreground">Signing you in…</span>
+    </div>
   );
 }

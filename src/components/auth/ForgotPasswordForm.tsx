@@ -1,3 +1,4 @@
+//src/components/auth/ForgotPasswordForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -14,6 +15,7 @@ import {
   forgotPasswordSchema,
   type ForgotPasswordFormData,
 } from "@/lib/validations";
+import { content } from "@/lib/content";
 
 export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,29 +29,24 @@ export function ForgotPasswordForm() {
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     mode: "onChange",
-    defaultValues: {
-      email: "",
-    },
+    defaultValues: { email: "" },
   });
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
-
     try {
       const result = await resetPasswordForEmail(data.email);
-
       if (!result.success) {
-        toast.error(result.error || "Failed to send reset email");
+        toast.error(result.error || content.auth.toast.forgotError);
         setIsLoading(false);
         return;
       }
-
-      toast.success(`Password reset link sent to ${data.email}`);
+      toast.success(content.auth.toast.forgotSuccess);
       setSentEmail(data.email);
       setEmailSent(true);
       setIsLoading(false);
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error(content.auth.toast.forgotError);
       setIsLoading(false);
     }
   };
@@ -64,7 +61,7 @@ export function ForgotPasswordForm() {
           href="/login"
           className="block text-center text-muted-foreground text-sm hover:text-foreground"
         >
-          Back to login
+          {content.auth.forgotPassword.backToLogin}
         </Link>
       </div>
     );
@@ -73,11 +70,11 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{content.auth.forgotPassword.emailLabel}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="admin@traviatorjets.com"
+          placeholder={content.auth.forgotPassword.emailPlaceholder}
           disabled={isLoading}
           {...register("email")}
         />
@@ -90,14 +87,14 @@ export function ForgotPasswordForm() {
         size="lg"
         disabled={isLoading || !isValid}
       >
-        {isLoading ? "Sending..." : "Send reset link"}
+        {isLoading ? "Sending..." : content.auth.forgotPassword.submitButton}
       </Button>
 
       <Link
-        href="/auth/login"
+        href="/login"
         className="block text-center text-muted-foreground text-sm hover:text-foreground"
       >
-        Back to login
+        {content.auth.forgotPassword.backToLogin}
       </Link>
     </form>
   );

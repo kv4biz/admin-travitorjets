@@ -1,5 +1,6 @@
-import { AuthLayout } from "@/components/auth/AuthLayout"
-import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm"
+//src/app/(auth)/reset-password/page.tsx
+import { AuthLayout } from "@/components/auth/AuthLayout";
+import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 
 export default function ResetPasswordPage() {
   return (
@@ -9,5 +10,5 @@ export default function ResetPasswordPage() {
     >
       <ResetPasswordForm />
     </AuthLayout>
-  )
+  );
 }

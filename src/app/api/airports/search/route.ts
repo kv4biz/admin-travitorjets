@@ -1,23 +1,28 @@
-//src/app/api/airports/search/route.ts
+// src/app/api/airports/search/route.ts
 import { NextRequest } from "next/server";
-import { withAdminAuth, apiSuccess, apiError } from "@/lib/api-utils";
+import { createClient } from "@supabase/supabase-js";
+import { apiSuccess, apiError } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
-  return withAdminAuth(async (_, supabase) => {
-    const q = request.nextUrl.searchParams.get("q");
-    if (!q || q.length < 2) {
-      return apiSuccess([]); // return empty if query too short
-    }
+  const q = (request.nextUrl.searchParams.get("q") || "").trim();
 
-    const { data, error } = await supabase
-      .from("airports")
-      .select("*")
-      .or(
-        `icao.ilike.%${q}%,iata.ilike.%${q}%,city.ilike.%${q}%,country.ilike.%${q}%,name.ilike.%${q}%`,
-      )
-      .limit(20);
+  if (!q) return apiSuccess([]);
 
-    if (error) return apiError(error.message, 500);
-    return apiSuccess(data);
-  });
+  // Use service‑role client to bypass any RLS
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+
+  const pattern = `%${q}%`;
+
+  const { data, error } = await supabase
+    .from("airports")
+    .select("id, name, iata, icao, city, country, latitude, longitude")
+    .or(`iata.ilike.${pattern},icao.ilike.${pattern},city.ilike.${pattern},country.ilike.${pattern},name.ilike.${pattern}`)
+    .limit(25);
+
+  if (error) {
+    console.error("Airport search error:", error);
+    return apiError(error.message, 500);
+  }
+
+  return apiSuccess(data);
 }

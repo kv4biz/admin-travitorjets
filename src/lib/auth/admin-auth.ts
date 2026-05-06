@@ -1,3 +1,4 @@
+//src/lib/auth/admin-auth.ts
 import { createClient } from "@/lib/client";
 
 export interface SignInCredentials {
@@ -18,9 +19,7 @@ export interface PasswordResetResult {
 /**
  * Sign in with email and password
  */
-export async function signInWithEmail(
-  credentials: SignInCredentials,
-): Promise<SignInResult> {
+export async function signInWithEmail(credentials: SignInCredentials): Promise<SignInResult> {
   try {
     const supabase = createClient();
 
@@ -40,8 +39,7 @@ export async function signInWithEmail(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
 }
@@ -65,8 +63,7 @@ export async function signOut(): Promise<SignInResult> {
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
 }
@@ -74,9 +71,7 @@ export async function signOut(): Promise<SignInResult> {
 /**
  * Send password reset email
  */
-export async function resetPasswordForEmail(
-  email: string,
-): Promise<PasswordResetResult> {
+export async function resetPasswordForEmail(email: string): Promise<PasswordResetResult> {
   try {
     const supabase = createClient();
 
@@ -95,8 +90,7 @@ export async function resetPasswordForEmail(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
 }
@@ -104,9 +98,7 @@ export async function resetPasswordForEmail(
 /**
  * Update user password (must be called after clicking reset link)
  */
-export async function updatePassword(
-  newPassword: string,
-): Promise<PasswordResetResult> {
+export async function updatePassword(newPassword: string): Promise<PasswordResetResult> {
   try {
     const supabase = createClient();
 
@@ -125,8 +117,7 @@ export async function updatePassword(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
 }

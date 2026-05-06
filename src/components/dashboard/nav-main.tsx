@@ -2,7 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import {
+  LayoutDashboard,
+  FileText,
+  Plane,
+  PlaneLanding,
+  TicketsPlane,
+  PlaneTakeoff,
+  ShoppingCart,
+  CreditCard,
+  DollarSign,
+  Folder,
+  Users,
+  BarChart,
+  Settings,
+} from "lucide-react";
+
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -11,22 +28,39 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 
+// ----------------------------
+// ICON MAP (REAL IMPLEMENTATION)
+// ----------------------------
+const iconMap = {
+  LayoutDashboard,
+  FileText,
+  Plane,
+  PlaneLanding,
+  TicketsPlane,
+  PlaneTakeoff,
+  ShoppingCart,
+  CreditCard,
+  DollarSign,
+  Folder,
+  Users,
+  BarChart,
+  Settings,
+} as const;
+
+type IconName = keyof typeof iconMap;
+
 type NavLink = {
   href: string;
   label: string;
-  icon: keyof typeof iconMapExample; // adjust based on your actual icon map
+  icon: IconName;
   managerOnly: boolean;
 };
 
-// Generic type for icon map – you can import the actual iconMap type from app-sidebar
-type IconMap = Record<string, LucideIcon>;
-
 interface NavMainProps {
   links: NavLink[];
-  iconMap: IconMap;
 }
 
-export function NavMain({ links, iconMap }: NavMainProps) {
+export function NavMain({ links }: NavMainProps) {
   const pathname = usePathname();
 
   return (
@@ -34,8 +68,10 @@ export function NavMain({ links, iconMap }: NavMainProps) {
       <SidebarGroupContent>
         <SidebarMenu>
           {links.map((link) => {
-            const Icon = iconMap[link.icon];
-            const isActive = pathname === link.href;
+            const Icon: LucideIcon = iconMap[link.icon] || LayoutDashboard;
+
+            const isActive =
+              pathname === link.href || pathname.startsWith(link.href + "/");
 
             return (
               <SidebarMenuItem key={link.href}>
@@ -45,8 +81,10 @@ export function NavMain({ links, iconMap }: NavMainProps) {
                   tooltip={link.label}
                 >
                   <Link href={link.href}>
-                    <Icon />
-                    <span>{link.label}</span>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">
+                      {link.label}
+                    </span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -57,18 +95,3 @@ export function NavMain({ links, iconMap }: NavMainProps) {
     </SidebarGroup>
   );
 }
-
-// Dummy type for the example – replace with actual icon names from your content
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const iconMapExample = {
-  LayoutDashboard: null,
-  FileText: null,
-  Plane: null,
-  ShoppingCart: null,
-  CreditCard: null,
-  DollarSign: null,
-  Folder: null,
-  Users: null,
-  BarChart: null,
-  Settings: null,
-};

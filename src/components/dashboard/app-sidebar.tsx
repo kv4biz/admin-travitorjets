@@ -1,10 +1,17 @@
+// src/components/dashboard/app-sidebar.tsx
 "use client";
 
+import * as React from "react";
+import Image from "next/image";
 import {
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import { content } from "@/lib/content";
 import { useProfile } from "@/hooks/useProfile";
@@ -38,9 +45,8 @@ const iconMap = {
   Settings,
 };
 
-export function AppSidebar() {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { profile } = useProfile();
-  // FIX: pass profile as first argument, then limit = 4
   const { requests, loading } = useRequests(profile, 4);
 
   const isManager = profile?.role === "manager";
@@ -50,11 +56,36 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader className="border-b px-4 py-2">
-        <span className="font-bold text-lg">
-          {content.dashboard.sidebar.header.title}
-        </span>
+    <Sidebar collapsible="offcanvas" {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            {/* Static block – no click/hover */}
+            <SidebarMenuButton
+              size="lg"
+              className="hover:bg-transparent active:bg-transparent cursor-default data-[state=open]:bg-transparent"
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
+                <Image
+                  src={content.dashboard.sidebar.header.logo}
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
+              </div>
+              {/* Hide this div when collapsed */}
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold">
+                  {content.dashboard.sidebar.header.title}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  Premium Aviation
+                </span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavMain links={links} iconMap={iconMap} />
@@ -67,6 +98,7 @@ export function AppSidebar() {
       <SidebarFooter>
         <NavUser profile={profile} />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }

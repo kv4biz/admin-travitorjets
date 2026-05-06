@@ -1,51 +1,62 @@
-//src/app/api/requests/[id]/route.ts
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/app/api/requests/[id]/route.ts
+// src/app/api/requests/[id]/route.ts
 import { NextRequest } from "next/server";
-import {
-  withAdminAuth,
-  apiSuccess,
-  apiError,
-  parseBody,
-} from "@/lib/api-utils";
-import { updateRequestSchema } from "@/lib/validations";
+import { withAdminAuth, apiSuccess, apiError } from "@/lib/api-utils";
+import { createClient } from "@supabase/supabase-js";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+
   return withAdminAuth(async (_, supabase) => {
-    const { data, error } = await supabase
+    const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      auth: { persistSession: false },
+    });
+
+    console.log("Fetching request ID:", id);
+
+    // Main request with user
+    const { data: req, error } = await serviceClient
       .from("requests")
-      .select("*, messages(*), invoices(*)")
-      .eq("id", params.id)
-      .single();
+      .select(
+        `
+        id,
+        type,
+        status,
+        created_at,
+        assigned_staff_id,
+        details,
+        user:user_id(
+          id,
+          full_name,
+          username
+        )
+      `,
+      )
+      .eq("id", id)
+      .maybeSingle();
 
-    if (error) return apiError(error.message, 404);
-    return apiSuccess(data);
-  });
-}
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  return withAdminAuth(async (user, supabase) => {
-    const { data: body, error: parseError } = await parseBody(request);
-    if (parseError) return apiError(parseError, 400);
-
-    const validation = updateRequestSchema.safeParse(body);
-    if (!validation.success) {
-      return apiError(validation.error.issues[0].message, 400);
+    if (error) {
+      console.error("❌ Supabase error:", error);
+      return apiError(error.message, 500);
     }
 
-    // If assigning to a different staff, ensure manager permission (optional: we can allow any admin)
-    const { data, error } = await supabase
-      .from("requests")
-      .update(validation.data)
-      .eq("id", params.id)
-      .select()
-      .single();
+    if (!req) {
+      console.log("❌ No request found for id:", id);
+      return apiError("Request not found", 404);
+    }
 
-    if (error) return apiError(error.message, 500);
-    return apiSuccess(data);
+    // Single invoice for this request
+    const { data: invoice, error: invoiceError } = await serviceClient.from("invoices").select("*").eq("request_id", id).maybeSingle();
+
+    if (invoiceError) {
+      console.error("⚠️ Invoice fetch error:", invoiceError);
+    }
+
+    // Return request + invoice (no documents)
+    return apiSuccess({
+      ...req,
+      invoice: invoice ?? null,
+    });
   });
 }

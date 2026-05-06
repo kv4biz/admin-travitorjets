@@ -1,5 +1,6 @@
-import { AuthLayout } from "@/components/auth/AuthLayout"
-import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm"
+//src/app/(auth)/forgot-password/page.tsx
+import { AuthLayout } from "@/components/auth/AuthLayout";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 export default function ForgotPasswordPage() {
   return (
@@ -9,5 +10,5 @@ export default function ForgotPasswordPage() {
     >
       <ForgotPasswordForm />
     </AuthLayout>
-  )
+  );
 }

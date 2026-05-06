@@ -15,6 +15,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordFormData,
 } from "@/lib/validations";
+import { content } from "@/lib/content";
 
 export function InviteAcceptForm() {
   const router = useRouter();
@@ -32,48 +33,35 @@ export function InviteAcceptForm() {
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
     mode: "onChange",
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { password: "", confirmPassword: "" },
   });
 
   useEffect(() => {
     const tokenParam = searchParams.get("token");
-    if (!tokenParam) {
-      // Use setTimeout to avoid synchronous setState in effect
-      setTimeout(() => {
-        setError("Invalid invitation link");
-        setIsLoading(false);
-      }, 0);
-      return;
-    }
-
-    setTimeout(() => setToken(tokenParam), 0);
 
     const validateInvitation = async () => {
+      if (!tokenParam) {
+        setError(content.auth.invite.errorInvalid);
+        setIsLoading(false);
+        return;
+      }
+
+      setToken(tokenParam);
+
       try {
         const response = await fetch(`/api/invitations/${tokenParam}`);
         const data = await response.json();
-
         if (!response.ok || !data.success) {
-          setTimeout(() => {
-            setError(data.error || "Invalid or expired invitation");
-            setIsLoading(false);
-          }, 0);
+          setError(data.error || content.auth.invite.errorInvalid);
+          setIsLoading(false);
           return;
         }
-
-        setTimeout(() => {
-          setEmail(data.data.email);
-          setInvitationValid(true);
-          setIsLoading(false);
-        }, 0);
+        setEmail(data.data.email);
+        setInvitationValid(true);
+        setIsLoading(false);
       } catch {
-        setTimeout(() => {
-          setError("Failed to validate invitation");
-          setIsLoading(false);
-        }, 0);
+        setError(content.auth.invite.errorFailed);
+        setIsLoading(false);
       }
     };
 
@@ -82,26 +70,22 @@ export function InviteAcceptForm() {
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true);
-
     try {
       const response = await fetch(`/api/invitations/${token}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: data.password }),
       });
-
       const responseData = await response.json();
-
       if (!response.ok || !responseData.success) {
-        toast.error(responseData.error || "Failed to accept invitation");
+        toast.error(responseData.error || content.auth.toast.inviteError);
         setIsLoading(false);
         return;
       }
-
-      toast.success("Account created successfully");
+      toast.success(content.auth.toast.inviteSuccess);
       router.push("/login");
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error(content.auth.toast.inviteError);
       setIsLoading(false);
     }
   };
@@ -109,7 +93,7 @@ export function InviteAcceptForm() {
   if (isLoading && !invitationValid) {
     return (
       <div className="text-center text-muted-foreground">
-        Validating invitation...
+        {content.auth.invite.validating}
       </div>
     );
   }
@@ -134,7 +118,7 @@ export function InviteAcceptForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{content.auth.invite.emailLabel}</Label>
         <Input
           id="email"
           type="email"
@@ -145,10 +129,10 @@ export function InviteAcceptForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{content.auth.invite.passwordLabel}</Label>
         <PasswordInput
           id="password"
-          placeholder="••••••••"
+          placeholder={content.auth.invite.passwordPlaceholder}
           disabled={isLoading}
           {...register("password")}
         />
@@ -156,10 +140,12 @@ export function InviteAcceptForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Label htmlFor="confirmPassword">
+          {content.auth.invite.confirmPasswordLabel}
+        </Label>
         <PasswordInput
           id="confirmPassword"
-          placeholder="••••••••"
+          placeholder={content.auth.invite.confirmPasswordPlaceholder}
           disabled={isLoading}
           {...register("confirmPassword")}
         />
@@ -172,7 +158,7 @@ export function InviteAcceptForm() {
         size="lg"
         disabled={isLoading || !isValid}
       >
-        {isLoading ? "Creating account..." : "Accept invitation"}
+        {isLoading ? "Creating account..." : content.auth.invite.submitButton}
       </Button>
     </form>
   );
