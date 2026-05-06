@@ -42,4 +42,9 @@ next-env.d.ts
 
 /scripts
 /supabase
-/.windsurf
+/.windsurf*
+/AGENTS.md
+/CLAUDE.md
+/plan.md
+/sql-schema.md
+/

@@ -507,6 +507,13 @@ export const content = {
     },
     // Other pages follow the same pattern
   },
+
+  layout: {
+    title: "TraviatorJets Admin",
+    description: "Admin dashboard for TraviatorJets – manage flights, requests, team, and analytics.",
+    logo: "/logo.svg",
+    favicon: "/logo.svg",
+  },
 } as const;
 
 export type Content = typeof content;

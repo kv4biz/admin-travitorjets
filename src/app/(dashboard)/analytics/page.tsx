@@ -59,8 +59,6 @@ export default function AnalyticsPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-4 md:p-6 space-y-6">
-        <h1 className="text-2xl font-bold">{ct.title}</h1>
-
         {/* Stats cards */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
