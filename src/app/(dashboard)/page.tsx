@@ -18,7 +18,7 @@ function StatCardSkeleton() {
       <CardHeader>
         <Skeleton className="h-5 w-24" />
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 px-2">
         <div className="flex justify-between items-center">
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-7 w-12" />
@@ -38,7 +38,7 @@ function InvoicesCardSkeleton() {
       <CardHeader>
         <Skeleton className="h-5 w-24" />
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 px-2">
         <Skeleton className="h-24 w-full" />
       </CardContent>
     </Card>
@@ -141,7 +141,7 @@ async function StatsCards() {
         <CardHeader>
           <CardTitle>{content.pages.overview.cards.requests.title}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 px-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">{content.pages.overview.cards.requests.assigned}</span>
             <span className="text-2xl font-bold">{stats.assigned}</span>
@@ -157,7 +157,7 @@ async function StatsCards() {
         <CardHeader>
           <CardTitle>{content.pages.overview.cards.emptyLegs.title}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 px-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">{content.pages.overview.cards.emptyLegs.admin}</span>
             <span className="text-2xl font-bold">{stats.adminEmptyLegs}</span>
@@ -175,7 +175,7 @@ async function StatsCards() {
         </CardHeader>
         <CardContent className="flex-1 pb-0">
           <div className="flex items-center gap-4 flex-wrap -mt-6">
-            <div className="flex-1 min-w-[120px] space-y-2">
+            <div className="flex-1 min-w-[120px] space-y-2 px-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">{content.pages.overview.cards.invoices.pending}</span>
                 <span className="text-2xl font-bold">{stats.pendingInvoices}</span>
@@ -224,7 +224,7 @@ async function RecentRequestsList() {
   return (
     <div className="h-full flex flex-col">
       <ScrollArea className="flex-1 min-h-0">
-        <div className="space-y-2 p-2">
+        <div className="space-y-2 px-2 p-2">
           {requests.map((req) => {
             const initials =
               req.user?.full_name
