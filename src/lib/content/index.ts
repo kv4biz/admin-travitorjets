@@ -530,6 +530,7 @@ export const content = {
     description: "Admin dashboard for TraviatorJets – manage flights, requests, team, and analytics.",
     logo: "/logo.svg",
     favicon: "/logo.svg",
+    ogImage: "/og-image.png",
   },
 } as const;
 
