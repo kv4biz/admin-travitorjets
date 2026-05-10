@@ -1,3 +1,4 @@
+//src/components/dashboard/nav-main.tsx
 "use client";
 
 import Link from "next/link";
@@ -20,13 +21,7 @@ import {
   Settings,
 } from "lucide-react";
 
-import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-} from "@/components/ui/sidebar";
+import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 
 // ----------------------------
 // ICON MAP (REAL IMPLEMENTATION)
@@ -70,21 +65,14 @@ export function NavMain({ links }: NavMainProps) {
           {links.map((link) => {
             const Icon: LucideIcon = iconMap[link.icon] || LayoutDashboard;
 
-            const isActive =
-              pathname === link.href || pathname.startsWith(link.href + "/");
+            const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
 
             return (
               <SidebarMenuItem key={link.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive}
-                  tooltip={link.label}
-                >
+                <SidebarMenuButton asChild isActive={isActive} tooltip={link.label}>
                   <Link href={link.href}>
                     <Icon className="h-4 w-4 shrink-0" />
-                    <span className="group-data-[collapsible=icon]:hidden">
-                      {link.label}
-                    </span>
+                    <span className="group-data-[collapsible=icon]:hidden">{link.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

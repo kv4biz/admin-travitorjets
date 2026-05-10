@@ -41,7 +41,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {/* Hide this div when collapsed */}
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-semibold">{content.dashboard.sidebar.header.title}</span>
-                <span className="truncate text-xs text-muted-foreground">Premium Aviation</span>
+                <span className="truncate text-xs text-muted-foreground">{content.dashboard.sidebar.header.subtitle}</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

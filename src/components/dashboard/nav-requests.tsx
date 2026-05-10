@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { MessageCircle, MoreHorizontal } from "lucide-react";
 import { type Request } from "@/hooks/useRequests";
 
@@ -27,27 +28,26 @@ interface NavRequestsProps {
   };
 }
 
-/** ✅ Format ID with a type prefix */
+/** Format ID with a type prefix */
 function getDisplayId(req: Request): string {
   const shortId = req.id.slice(0, 8).toUpperCase();
 
   switch (req.type) {
     case "empty_leg_inquiry":
-      return `#EL-${shortId}`; // Empty Leg
+      return `#EL-${shortId}`;
     case "charter":
-      return `#CH-${shortId}`; // Charter
+      return `#CH-${shortId}`;
     case "aircraft_inquiry":
-      return `#AC-${shortId}`; // Aircraft Listing
+      return `#AC-${shortId}`;
     default:
-      return shortId; // fallback (no prefix)
+      return shortId;
   }
 }
 
-/** ✅ Format full label */
+/** Format full label */
 function getDisplayLabel(req: Request): string {
   const id = getDisplayId(req);
   const name = req.user?.full_name || "Unknown";
-
   return `${id} - ${name}`;
 }
 
@@ -73,12 +73,14 @@ export function NavRequests({ requests, loading, content }: NavRequestsProps) {
               <>
                 {visibleRequests.map((req) => (
                   <SidebarMenuItem key={req.id}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={getDisplayLabel(req)} // ✅ clean tooltip
-                    >
-                      <Link href={`/requests/${req.id}`}>
-                        <MessageCircle className="size-4" />
+                    <SidebarMenuButton asChild tooltip={getDisplayLabel(req)}>
+                      <Link href={`/requests/${req.id}`} className="flex items-center gap-2">
+                        <MessageCircle className="size-4 shrink-0" />
+                        {req.unread_count > 0 && (
+                          <Badge variant="destructive" className="ml-auto text-xs px-1.5 py-0 h-5">
+                            {req.unread_count}
+                          </Badge>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -120,13 +122,13 @@ export function NavRequests({ requests, loading, content }: NavRequestsProps) {
               {requests.map((req) => (
                 <SidebarMenuItem key={req.id}>
                   <SidebarMenuButton asChild>
-                    <Link
-                      href={`/requests/${req.id}`}
-                      className="block w-full"
-                      title={getDisplayLabel(req)} // ✅ hover full text
-                    >
-                      {/* ✅ truncation applied here */}
+                    <Link href={`/requests/${req.id}`} className="flex w-full items-center justify-between" title={getDisplayLabel(req)}>
                       <span className="truncate block">{getDisplayLabel(req)}</span>
+                      {req.unread_count > 0 && (
+                        <Badge variant="destructive" className="ml-2 shrink-0">
+                          {req.unread_count}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

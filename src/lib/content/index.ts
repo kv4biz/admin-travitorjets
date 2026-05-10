@@ -71,6 +71,7 @@ export const content = {
       header: {
         logo: "/logo.svg",
         title: "Traviator Jets",
+        subtitle: "Premium Aviation",
       },
 
       mainLinks: [
