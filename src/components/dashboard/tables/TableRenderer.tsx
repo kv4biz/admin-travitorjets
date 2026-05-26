@@ -326,7 +326,7 @@ export function TableRenderer<T extends { id: string }>({
   const renderTopBar = () => {
     if (customSearch) {
       return (
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex items-center gap-2 w-full p-1">
           <div className="flex-1">{customSearch}</div>
           {/* Right side controls (columns, sort, filter, add) */}
           <div className="flex items-center gap-0.5 lg:gap-2 ml-auto shrink-0">

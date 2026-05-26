@@ -11,6 +11,7 @@ export type Request = {
   status: string;
   details: Record<string, unknown>;
   created_at: string;
+  updated_at: string;
   user_id: string;
   assigned_staff_id: string | null;
   user?: { full_name: string };
@@ -26,7 +27,6 @@ type Profile = {
 export function useRequests(profile: Profile | null, limit: number = 10) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [supabase] = useState<SupabaseClient>(() => createClient());
   const channelId = useId();
 
@@ -35,11 +35,13 @@ export function useRequests(profile: Profile | null, limit: number = 10) {
     setLoading(true);
 
     try {
+      // Always order by updated_at DESC (most recent activity first)
       let query = supabase.from("requests").select("*, user:user_id(full_name)").order("updated_at", { ascending: false }).limit(limit);
 
       if (profile.role === "user") {
         query = query.eq("user_id", profile.id);
       } else {
+        // staff/manager – only assigned, not closed
         query = query.eq("assigned_staff_id", profile.id).neq("status", "closed");
       }
 
@@ -48,12 +50,13 @@ export function useRequests(profile: Profile | null, limit: number = 10) {
 
       if (!reqs || reqs.length === 0) {
         setRequests([]);
+        setLoading(false);
         return;
       }
 
       const requestIds = reqs.map((r) => r.id);
 
-      // Unread counts
+      // Unread counts (messages where read = false and sender != current user)
       const { data: unreadMessages } = await supabase
         .from("messages")
         .select("request_id")
@@ -68,7 +71,7 @@ export function useRequests(profile: Profile | null, limit: number = 10) {
         }
       }
 
-      // Last message per request
+      // Last message per request (most recent)
       const { data: lastMessages } = await supabase
         .from("messages")
         .select("request_id, content, created_at")
@@ -102,16 +105,18 @@ export function useRequests(profile: Profile | null, limit: number = 10) {
     }
   }, [profile, limit, supabase]);
 
+  // Initial fetch
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
 
-  // Real-time subscription for staff/manager
+  // ===== REAL‑TIME SUBSCRIPTION =====
   useEffect(() => {
-    if (!profile || profile.role === "user") return;
+    if (!profile) return;
 
     const channel = supabase
-      .channel(`assigned-${profile.id}-${channelId}`)
+      .channel(`admin-requests-${channelId}`)
+      // Watch for changes on requests that belong to the current user (as assigned_staff)
       .on(
         "postgres_changes",
         {
@@ -124,12 +129,20 @@ export function useRequests(profile: Profile | null, limit: number = 10) {
           fetchRequests();
         },
       )
+      // Also watch for new messages on any request (they affect unread count and last_message)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        fetchRequests();
+      })
+      // Watch for read status updates (mark as read)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: "read=eq.true" }, () => {
+        fetchRequests();
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile, channelId, supabase, fetchRequests]);
+  }, [supabase, profile, channelId, fetchRequests]);
 
   return { requests, loading, refetch: fetchRequests };
 }

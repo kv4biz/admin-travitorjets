@@ -474,7 +474,7 @@ export const content = {
       chat: {
         input: {
           placeholder: "Type a message...",
-          send: "Send",
+          send: "Sent",
           uploadInvoice: "Upload Invoice",
           uploadConfirmation: "Upload Confirmation",
           attachFile: "Attach file",
