@@ -236,7 +236,7 @@ export default function EmptyLegsPage() {
     },
   ];
 
-  const priceType = form?.watch("price_type");
+  const priceType = form?.watch?.("price_type");
   const aircraftTypeId = form?.watch("aircraft_type_id");
 
   const fieldsToRender = useMemo(() => {
