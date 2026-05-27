@@ -2,6 +2,7 @@
 import { NextRequest } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { apiSuccess, apiError } from "@/lib/api-utils";
+import { normalizeAircraftCategory } from "@/lib/aircraft-category-map";
 
 /* ---------------- CONFIG ---------------- */
 
@@ -41,12 +42,10 @@ interface PexJetLeg {
   priceType?: "CONTACT" | "FIXED";
 }
 
-/* ---------------- HELPERS ---------------- */
+/* ---------------- SUPABASE ---------------- */
 
 function getSupabaseAdmin(): SupabaseClient {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: { persistSession: false },
-  });
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 }
 
 /* ---------------- AUTH ---------------- */
@@ -54,25 +53,15 @@ function getSupabaseAdmin(): SupabaseClient {
 function isAuthorized(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
 
-  /* ✅ Postman/manual external */
-  if (authHeader === `Bearer ${CRON_SECRET}`) {
-    return true;
-  }
+  if (authHeader === `Bearer ${CRON_SECRET}`) return true;
 
-  /* ✅ Vercel cron */
   const cronHeader = request.headers.get("x-vercel-cron");
+  if (cronHeader === "1") return true;
 
-  if (cronHeader === "1") {
-    return true;
-  }
-
-  /* ✅ Internal frontend requests */
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
 
-  if (origin && host && origin.includes(host)) {
-    return true;
-  }
+  if (origin && host && origin.includes(host)) return true;
 
   return false;
 }
@@ -92,9 +81,7 @@ async function upsertAirport(supabase: SupabaseClient, airport: PexJetAirport) {
       latitude: airport.latitude ?? null,
       longitude: airport.longitude ?? null,
     },
-    {
-      onConflict: "icao",
-    },
+    { onConflict: "icao" },
   );
 }
 
@@ -104,23 +91,19 @@ async function findAirportId(supabase: SupabaseClient, iata?: string, icao?: str
   if (icao) {
     const { data } = await supabase.from("airports").select("id").eq("icao", icao).maybeSingle();
 
-    if (data?.id) {
-      return data.id;
-    }
+    if (data?.id) return data.id;
   }
 
   if (iata) {
     const { data } = await supabase.from("airports").select("id").eq("iata", iata).maybeSingle();
 
-    if (data?.id) {
-      return data.id;
-    }
+    if (data?.id) return data.id;
   }
 
   return null;
 }
 
-/* ---------------- MAP ---------------- */
+/* ---------------- MAP PEXJET -> DB ---------------- */
 
 async function mapPexJetToDb(leg: PexJetLeg, supabase: SupabaseClient) {
   const depAirportId = await findAirportId(supabase, leg.departureAirport?.iataCode, leg.departureAirport?.icaoCode);
@@ -130,14 +113,18 @@ async function mapPexJetToDb(leg: PexJetLeg, supabase: SupabaseClient) {
   return {
     external_id: leg.id,
     slug: leg.slug,
+
     dep_airport_id: depAirportId,
     arr_airport_id: arrAirportId,
+
     departure_time: leg.departureDate,
 
     aircraft_type_id: null,
-
     aircraft_name: leg.aircraft?.name ?? null,
-    aircraft_category: leg.aircraft?.category ?? null,
+
+    // ✅ FIX IS HERE (IMPORTANT)
+    aircraft_category: normalizeAircraftCategory(leg.aircraft?.category),
+
     aircraft_max_pax: leg.aircraft?.maxPax ?? null,
     aircraft_image: leg.aircraft?.image ?? null,
 
@@ -145,7 +132,6 @@ async function mapPexJetToDb(leg: PexJetLeg, supabase: SupabaseClient) {
     total_seats: leg.totalSeats,
 
     price: leg.priceUsd ?? null,
-
     currency_code: "USD",
 
     price_type: leg.priceType === "CONTACT" ? "contact" : "fixed",
@@ -156,20 +142,17 @@ async function mapPexJetToDb(leg: PexJetLeg, supabase: SupabaseClient) {
   };
 }
 
-/* ---------------- MAIN SYNC ---------------- */
+/* ---------------- SYNC ENGINE ---------------- */
 
 async function runSync() {
   const supabase = getSupabaseAdmin();
 
   let page = 1;
-
   const limit = 100;
-
   let hasMore = true;
 
   let synced = 0;
   let skipped = 0;
-
   const failed: string[] = [];
 
   const allExternalIds = new Set<string>();
@@ -187,16 +170,13 @@ async function runSync() {
     }
 
     const json = await res.json();
-
     const legs: PexJetLeg[] = json.data || [];
-
     const meta = json.meta;
 
     for (const leg of legs) {
       allExternalIds.add(leg.id);
 
       await upsertAirport(supabase, leg.departureAirport);
-
       await upsertAirport(supabase, leg.arrivalAirport);
 
       const mapped = await mapPexJetToDb(leg, supabase);
@@ -209,27 +189,19 @@ async function runSync() {
       const { error } = await supabase.from("empty_legs").upsert(
         {
           ...mapped,
-
           source: "pexjet",
-
           owner_type: "pexjet",
-
           is_public: false,
-
           external_updated_at: new Date().toISOString(),
         },
-        {
-          onConflict: "external_id",
-        },
+        { onConflict: "external_id" },
       );
 
       if (error) {
         failed.push(`${leg.id}: ${error.message}`);
-
-        continue;
+      } else {
+        synced++;
       }
-
-      synced++;
     }
 
     if (!meta || page >= meta.totalPages) {
@@ -246,7 +218,7 @@ async function runSync() {
   if (existing) {
     const toDelete = existing.filter((row) => !allExternalIds.has(row.external_id)).map((row) => row.id);
 
-    if (toDelete.length > 0) {
+    if (toDelete.length) {
       await supabase.from("empty_legs").delete().in("id", toDelete);
     }
   }
@@ -260,32 +232,24 @@ async function runSync() {
   };
 }
 
-/* ---------------- GET ---------------- */
+/* ---------------- ROUTES ---------------- */
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return apiError("Unauthorized", 401);
-  }
+  if (!isAuthorized(request)) return apiError("Unauthorized", 401);
 
   try {
     const result = await runSync();
-
     return apiSuccess(result);
   } catch (error) {
     return apiError(error instanceof Error ? error.message : "Unknown error", 500);
   }
 }
 
-/* ---------------- POST ---------------- */
-
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return apiError("Unauthorized", 401);
-  }
+  if (!isAuthorized(request)) return apiError("Unauthorized", 401);
 
   try {
     const result = await runSync();
-
     return apiSuccess(result);
   } catch (error) {
     return apiError(error instanceof Error ? error.message : "Unknown error", 500);

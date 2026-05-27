@@ -237,6 +237,24 @@ export default function EmptyLegsPage() {
   ];
 
   const [priceType, setPriceType] = useState<"fixed" | "contact">("fixed");
+  useEffect(() => {
+    if (!form) return;
+
+    // 1. INITIAL SYNC (IMPORTANT FOR EDIT MODE)
+    const initialPriceType = form.getValues("price_type");
+    if (initialPriceType) {
+      setPriceType(initialPriceType);
+    }
+
+    // 2. LIVE WATCH
+    const subscription = form.watch((value) => {
+      if (value.price_type) {
+        setPriceType(value.price_type);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   useEffect(() => {
     if (!form) return;
@@ -255,7 +273,6 @@ export default function EmptyLegsPage() {
   const fieldsToRender = useMemo(() => {
     let fields = mode === "preview" ? [...formFields, ...previewFields] : [...formFields];
 
-    // hide price only when contact
     if (priceType === "contact") {
       fields = fields.filter((f) => f.name !== "price");
     }
@@ -273,7 +290,10 @@ export default function EmptyLegsPage() {
       return field;
     });
   }, [mode, priceType, aircraftTypes]);
-
+  useEffect(() => {
+    if (!selectedRow) return;
+    setPriceType(selectedRow.price_type);
+  }, [selectedRow]);
   // Auto‑fill aircraft details when aircraft type changes
   useEffect(() => {
     if (!form || !aircraftTypeId) return;
@@ -489,7 +509,7 @@ export default function EmptyLegsPage() {
             onCancel={() => setShowPanel(false)}
           >
             <FormRenderer
-              key={`${mode}-${selectedRow?.id ?? "new"}-${priceType}`}
+              key={`${mode}-${selectedRow?.id ?? "new"}`}
               schema={createEmptyLegSchema}
               fields={fieldsToRender}
               defaultValues={defaultValues}
