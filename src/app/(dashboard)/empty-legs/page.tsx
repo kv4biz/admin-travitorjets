@@ -236,12 +236,26 @@ export default function EmptyLegsPage() {
     },
   ];
 
-  const priceType = form?.watch?.("price_type");
+  const [priceType, setPriceType] = useState<"fixed" | "contact">("fixed");
+
+  useEffect(() => {
+    if (!form) return;
+
+    const subscription = form.watch((value) => {
+      if (value.price_type) {
+        setPriceType(value.price_type);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   const aircraftTypeId = form?.watch("aircraft_type_id");
 
   const fieldsToRender = useMemo(() => {
     let fields = mode === "preview" ? [...formFields, ...previewFields] : [...formFields];
 
+    // hide price only when contact
     if (priceType === "contact") {
       fields = fields.filter((f) => f.name !== "price");
     }
@@ -250,7 +264,10 @@ export default function EmptyLegsPage() {
       if (field.name === "aircraft_type_id") {
         return {
           ...field,
-          options: aircraftTypes.map((t) => ({ value: t.id, label: t.name })),
+          options: aircraftTypes.map((t) => ({
+            value: t.id,
+            label: t.name,
+          })),
         };
       }
       return field;
@@ -472,7 +489,7 @@ export default function EmptyLegsPage() {
             onCancel={() => setShowPanel(false)}
           >
             <FormRenderer
-              key={`${mode}-${selectedRow?.id ?? "new"}`}
+              key={`${mode}-${selectedRow?.id ?? "new"}-${priceType}`}
               schema={createEmptyLegSchema}
               fields={fieldsToRender}
               defaultValues={defaultValues}
