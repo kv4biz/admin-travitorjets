@@ -123,7 +123,7 @@ export function FormFields({
                       <SelectTrigger>
                         <SelectValue placeholder={field.placeholder} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
                         {field.options?.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}

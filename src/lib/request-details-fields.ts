@@ -11,6 +11,7 @@ const EMPTY_LEG_FIELDS: FormFieldConfig[] = [
   { name: "aircraft_category", label: "Category", type: "text", editable: false },
   { name: "aircraft_image", label: "Aircraft Image", type: "image", editable: false },
   { name: "available_seats", label: "Available Seats", type: "number", editable: false },
+  { name: "seat_requested", label: "Seat Requested", type: "number", editable: true },
   { name: "price_agreed", label: "Price Agreed", type: "number", editable: true },
   { name: "currency_code", label: "Currency Code", type: "text", editable: false },
 ];
