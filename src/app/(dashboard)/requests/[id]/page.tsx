@@ -10,6 +10,7 @@ import { RequestHeader } from "@/components/dashboard/requests/RequestHeader";
 import { MessageInput } from "@/components/dashboard/requests/MessageInput";
 import { MessageList } from "@/components/dashboard/requests/MessageList";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 type RequestDetail = {
   id: string;
@@ -141,7 +142,14 @@ export default function RequestDetailPage() {
   }
 
   if (!request) {
-    return <div className="p-4 text-muted-foreground">Request not found.</div>;
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>Request not found</EmptyTitle>
+          <EmptyDescription>The request you are looking for does not exist or has been removed.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
   }
 
   const isAssigned = request.assigned_staff_id === currentUserId;

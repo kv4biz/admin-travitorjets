@@ -14,6 +14,7 @@ const EMPTY_LEG_FIELDS: FormFieldConfig[] = [
   { name: "seat_requested", label: "Seat Requested", type: "number", editable: true },
   { name: "price_agreed", label: "Price Agreed", type: "number", editable: true },
   { name: "currency_code", label: "Currency Code", type: "text", editable: false },
+  { name: "additional_notes", label: "Additional Notes", type: "textarea", editable: true },
 ];
 
 const CHARTER_FIELDS: FormFieldConfig[] = [
