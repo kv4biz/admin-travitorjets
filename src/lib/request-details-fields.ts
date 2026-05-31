@@ -6,15 +6,16 @@ type RequestType = "empty_leg_inquiry" | "charter" | "aircraft_inquiry";
 const EMPTY_LEG_FIELDS: FormFieldConfig[] = [
   { name: "departure_airport_id", label: "Departure Airport", type: "airport", editable: false },
   { name: "arrival_airport_id", label: "Arrival Airport", type: "airport", editable: false },
-  { name: "departure_time", label: "Departure Time", type: "datetime", editable: true },
+  { name: "departure_time", label: "Departure Time", type: "datetime", editable: false },
   { name: "aircraft_name", label: "Aircraft Name", type: "text", editable: false },
   { name: "aircraft_category", label: "Category", type: "text", editable: false },
   { name: "aircraft_image", label: "Aircraft Image", type: "image", editable: false },
   { name: "available_seats", label: "Available Seats", type: "number", editable: false },
-  { name: "seat_requested", label: "Seat Requested", type: "number", editable: true },
-  { name: "price_agreed", label: "Price Agreed", type: "number", editable: true },
-  { name: "currency_code", label: "Currency Code", type: "text", editable: false },
-  { name: "additional_notes", label: "Additional Notes", type: "textarea", editable: true },
+  { name: "passengers", label: "Passengers Requested", type: "number", editable: false },
+  { name: "message", label: "Additional Notes", type: "textarea", editable: false },
+  { name: "price", label: "Current Price (full aircraft)", type: "number", editable: false },
+  { name: "currency_code", label: "Currency", type: "text", editable: false },
+  { name: "price_agreed", label: "Negotiated Price", type: "number", editable: true },
 ];
 
 const CHARTER_FIELDS: FormFieldConfig[] = [
