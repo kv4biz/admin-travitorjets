@@ -13,7 +13,16 @@ const EMPTY_LEG_FIELDS: FormFieldConfig[] = [
   { name: "available_seats", label: "Available Seats", type: "number", editable: false },
   { name: "passengers", label: "Passengers Requested", type: "number", editable: false },
   { name: "message", label: "Additional Notes", type: "textarea", editable: false },
-  { name: "price", label: "Current Price (full aircraft)", type: "number", editable: false },
+  {
+    name: "price",
+    label: "Current Price",
+    type: "text",
+    editable: false,
+    render: (value: unknown) => {
+      const numValue = value as number | null;
+      return numValue == null ? "Contact" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(numValue);
+    },
+  },
   { name: "currency_code", label: "Currency", type: "text", editable: false },
   { name: "price_agreed", label: "Negotiated Price", type: "number", editable: true },
 ];

@@ -31,6 +31,7 @@ export interface FormFieldConfig {
   multiple?: boolean;
   maxFiles?: number;
   editable?: boolean;
+  render?: (value: unknown) => React.ReactNode;
 }
 
 interface FormRendererProps<TSchema extends ZodTypeAny> {
