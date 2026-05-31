@@ -55,11 +55,7 @@ export function FormFields({
                 {field.label}
                 {field.required && <span className="text-destructive ml-1">*</span>}
               </FieldLabel>
-              <FieldContent>
-                <Input className="text-sm text-gray-900" disabled>
-                  {field.render(value)}
-                </Input>
-              </FieldContent>
+              <div className="text-sm text-gray-900 p-2 border rounded-lg bg-gray-100">{field.render(value)}</div>
             </Field>
           );
         }
