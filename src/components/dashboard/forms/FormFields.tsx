@@ -48,6 +48,19 @@ export function FormFields({
         const value = form.watch(field.name);
         // Per‑field disabled: global disabled OR explicit editable = false
         const isFieldDisabled = disabled || field.editable === false;
+        if (field.render && isFieldDisabled) {
+          return (
+            <Field key={field.name}>
+              <FieldLabel>
+                {field.label}
+                {field.required && <span className="text-destructive ml-1">*</span>}
+              </FieldLabel>
+              <FieldContent>
+                <div className="text-sm text-gray-900">{field.render(value)}</div>
+              </FieldContent>
+            </Field>
+          );
+        }
         return (
           <Field key={field.name}>
             <FieldLabel>
