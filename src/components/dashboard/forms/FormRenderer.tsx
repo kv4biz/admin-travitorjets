@@ -258,7 +258,7 @@ export function FormRenderer<TSchema extends ZodTypeAny>({
 
   return (
     <form onSubmit={form.handleSubmit(submitHandler)} className="h-full flex flex-col min-h-0">
-      <ScrollArea className="flex-1 min-h-0 overflow-hidden pr-4">
+      <ScrollArea className="flex-1 min-h-0 overflow-hidden px-4">
         <div className="space-y-4 mb-4">
           <FormFields
             fields={fields}
