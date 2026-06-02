@@ -1,11 +1,9 @@
+// src/app/api/aircraft-listings/[id]/route.ts
 import { NextRequest } from "next/server";
 import { withAdminAuth, apiSuccess, apiError, parseBody } from "@/lib/api-utils";
-import { updateAircraftListingSchema, CreateAircraftListingInput } from "@/lib/validations/aircraft-listing.schema";
+import { updateAircraftListingSchema } from "@/lib/validations/aircraft-listing.schema";
 import { getPathFromUrl } from "@/lib/supabase/storage";
 import { generateUniqueSlug } from "@/lib/utils/slugify";
-
-// Type for the update payload (partial of create input plus optional slug)
-type AircraftListingUpdateData = Partial<CreateAircraftListingInput> & { slug?: string };
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -20,12 +18,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     const validData = validation.data;
-
     if (!validData || Object.keys(validData).length === 0) {
       return apiError("No fields provided for update", 400);
     }
 
-    const updateData: AircraftListingUpdateData = { ...validData };
+    const updateData: Record<string, unknown> = { ...validData };
 
     // Regenerate slug if title changed
     if (typeof validData.title === "string" && validData.title.trim().length > 0) {
@@ -44,12 +41,16 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const bucket = "aircraft-listings";
 
   return withAdminAuth(async (_, supabase) => {
-    // 1. Fetch the record to get image and document URLs
-    const { data: row, error: fetchError } = await supabase.from("aircraft_listings").select("images, documents").eq("id", id).single();
+    // 1. Fetch the record – include cabin_plan_image now
+    const { data: row, error: fetchError } = await supabase
+      .from("aircraft_listings")
+      .select("images, documents, cabin_plan_image")
+      .eq("id", id)
+      .single();
 
     if (fetchError) return apiError(fetchError.message, 500);
 
-    // 2. Normalize images and documents to array of strings (same logic as aircraft types)
+    // 2. Normalize all file URLs to a flat array of strings
     const extractUrls = (value: unknown): string[] => {
       if (Array.isArray(value)) {
         return value.filter((v): v is string => typeof v === "string");
@@ -62,7 +63,9 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     const imageUrls = extractUrls(row?.images);
     const docUrls = extractUrls(row?.documents);
-    const allUrls = [...imageUrls, ...docUrls];
+    const cabinPlanUrls = extractUrls(row?.cabin_plan_image); // single URL as array
+
+    const allUrls = [...imageUrls, ...docUrls, ...cabinPlanUrls];
 
     // 3. Extract storage paths
     const paths = allUrls
@@ -75,12 +78,12 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       })
       .filter((p): p is string => p !== null);
 
-    // 4. Delete files from storage (non‑blocking, same as aircraft types)
+    // 4. Delete files from storage (non‑blocking)
     if (paths.length > 0) {
       const { error: storageError } = await supabase.storage.from(bucket).remove(paths);
       if (storageError) {
         console.error("Storage delete error:", storageError);
-        // Continue with DB deletion even if storage fails
+        // Continue with DB deletion
       }
     }
 

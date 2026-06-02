@@ -18,6 +18,7 @@ import { FileDropzone } from "./FileDropzone";
 import { FormFieldConfig } from "./FormRenderer";
 import { AirportSearch, Airport } from "@/components/dashboard/airports/AirportSearch";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { ListingSectionsField } from "./ListingSectionsField";
 
 interface FormFieldsProps {
   fields: FormFieldConfig[];
@@ -187,6 +188,13 @@ export function FormFields({
                   onStagedFileRemoved={onStagedFileRemoved}
                   onExistingFileMarkedForRemoval={onExistingFileMarkedForRemoval}
                   stagedFiles={stagedFiles}
+                />
+              )}
+              {field.type === "listing_sections" && (
+                <ListingSectionsField
+                  value={(value as any) || []}
+                  onChange={(newVal) => form.setValue(field.name, newVal, { shouldDirty: true })}
+                  disabled={isFieldDisabled}
                 />
               )}
             </FieldContent>

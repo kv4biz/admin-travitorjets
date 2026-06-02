@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
 
     let query = supabase.from("aircraft_listings").select("*, aircraft_type:aircraft_type_id(*)", { count: "exact" });
 
-    // ✅ Search
+    // ✅ Search – now on title and serial_number (no registration_number)
     if (search) {
-      query = query.or(`title.ilike.%${search}%,registration_number.ilike.%${search}%`);
+      query = query.or(`title.ilike.%${search}%,serial_number.ilike.%${search}%`);
     }
 
     // ✅ Filter by status
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
       query = query.in("aircraft_type_id", typeIds);
     }
 
-    // ✅ Sorting
-    const validColumns = ["title", "registration_number", "year", "price", "status", "created_at", "slug"];
+    // ✅ Sorting – remove price and registration_number, add serial_number
+    const validColumns = ["title", "serial_number", "year", "status", "created_at", "slug"];
     if (sortBy && validColumns.includes(sortBy)) {
       query = query.order(sortBy, { ascending: sortOrder === "asc" });
     } else {
@@ -53,16 +53,14 @@ export async function POST(request: NextRequest) {
     const { data: body, error: parseError } = await parseBody(request);
     if (parseError) return apiError(parseError, 400);
 
-    // ✅ Validate FIRST
     const validation = createAircraftListingSchema.safeParse(body);
-
     if (!validation.success) {
       return apiError(validation.error.issues[0].message, 400);
     }
 
     const validData = validation.data;
 
-    // ✅ Generate slug from title
+    // Generate slug from title
     const slug = await generateUniqueSlug(supabase, "aircraft_listings", [validData.title], "slug", undefined, { maxLength: 100 });
 
     const { data, error } = await supabase

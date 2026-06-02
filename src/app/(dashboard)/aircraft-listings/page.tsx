@@ -1,4 +1,4 @@
-//src/(dashboard)/aircraft-listings/page.tsx
+// src/(dashboard)/aircraft-listings/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -12,16 +12,22 @@ import { createAircraftListingSchema } from "@/lib/validations/aircraft-listing.
 import { content } from "@/lib/content";
 import { z } from "zod";
 
+// --- Updated Type ---
+type ListingSection = {
+  title: string;
+  items: string[];
+};
+
 type AircraftListing = {
   id: string;
   title: string;
   description: string | null;
   aircraft_type_id: string | null;
   aircraft_type: { id: string; name: string } | null;
-  registration_number: string | null;
+  serial_number: string | null;
   year: number | null;
-  price: number | null;
-  currency_code: string;
+  cabin_plan_image: string | null;
+  listing_sections: ListingSection[] | null;
   images: string[] | null;
   documents: string[] | null;
   status: "active" | "sold" | "inactive";
@@ -29,7 +35,7 @@ type AircraftListing = {
   updated_at: string;
 };
 
-// Table columns
+// --- Table Columns ---
 const columns: ColumnConfig<AircraftListing>[] = [
   {
     key: "title",
@@ -37,8 +43,8 @@ const columns: ColumnConfig<AircraftListing>[] = [
     primary: true,
   },
   {
-    key: "registration_number",
-    label: content.pages.aircraftListings.columns.registration,
+    key: "serial_number",
+    label: "Serial Number", // ideally from content, but we'll use a plain string for now
     primary: true,
   },
   {
@@ -48,17 +54,6 @@ const columns: ColumnConfig<AircraftListing>[] = [
   },
   { key: "year", label: content.pages.aircraftListings.columns.year },
   {
-    key: "price",
-    label: content.pages.aircraftListings.columns.price,
-    render: (row) =>
-      row.price
-        ? new Intl.NumberFormat(undefined, {
-            style: "currency",
-            currency: row.currency_code || "USD",
-          }).format(row.price)
-        : "—",
-  },
-  {
     key: "status",
     label: content.pages.aircraftListings.columns.status,
     render: (row) => (
@@ -67,7 +62,7 @@ const columns: ColumnConfig<AircraftListing>[] = [
   },
 ];
 
-// Form fields
+// --- Form Fields ---
 const formFields: FormFieldConfig[] = [
   {
     name: "title",
@@ -77,10 +72,10 @@ const formFields: FormFieldConfig[] = [
     placeholder: content.pages.aircraftListings.form.titlePlaceholder,
   },
   {
-    name: "registration_number",
-    label: content.pages.aircraftListings.form.registrationNumber,
+    name: "serial_number",
+    label: "Serial Number", // update your content file accordingly
     type: "text",
-    placeholder: content.pages.aircraftListings.form.registrationPlaceholder,
+    placeholder: "e.g. SN-12345",
   },
   {
     name: "aircraft_type_id",
@@ -95,16 +90,19 @@ const formFields: FormFieldConfig[] = [
     placeholder: content.pages.aircraftListings.form.yearPlaceholder,
   },
   {
-    name: "price",
-    label: content.pages.aircraftListings.form.price,
-    type: "number",
-    placeholder: content.pages.aircraftListings.form.pricePlaceholder,
+    name: "cabin_plan_image",
+    label: "Cabin Plan",
+    type: "image",
+    bucket: "aircraft-listings",
+    multiple: false, // single image
+    maxFiles: 1,
+    placeholder: "Upload cabin plan image",
   },
   {
-    name: "currency_code",
-    label: content.pages.aircraftListings.form.currency,
-    type: "select",
-    options: [{ value: "USD", label: "USD" }],
+    name: "listing_sections",
+    label: content.pages.aircraftListings.form.listingSections,
+    type: "listing_sections",
+    placeholder: content.pages.aircraftListings.form.listingSectionsHint,
   },
   {
     name: "status",
@@ -152,7 +150,7 @@ export default function AircraftListingsPage() {
 
   const refreshTable = () => setRefreshKey((prev) => prev + 1);
 
-  const searchFields = useMemo(() => ["title", "registration_number"], []);
+  const searchFields = useMemo(() => ["title", "serial_number"], []); // removed registration_number
 
   // Fetch aircraft types for select and filtering
   useEffect(() => {
@@ -191,7 +189,7 @@ export default function AircraftListingsPage() {
     return fields;
   }, [aircraftTypes]);
 
-  const sortableFields: (keyof AircraftListing)[] = ["title", "registration_number", "year", "price", "status", "created_at"];
+  const sortableFields: (keyof AircraftListing)[] = ["title", "serial_number", "year", "status", "created_at"]; // removed price and registration_number
 
   // Inject options into select fields
   const fieldsWithOptions = formFields.map((field) => {
@@ -272,17 +270,17 @@ export default function AircraftListingsPage() {
         title: selectedRow.title,
         description: selectedRow.description || "",
         aircraft_type_id: selectedRow.aircraft_type_id || "",
-        registration_number: selectedRow.registration_number || "",
+        serial_number: selectedRow.serial_number || "",
         year: selectedRow.year ?? undefined,
-        price: selectedRow.price ?? undefined,
-        currency_code: selectedRow.currency_code || "USD",
+        cabin_plan_image: selectedRow.cabin_plan_image || "",
+        listing_sections: selectedRow.listing_sections || [],
         images: selectedRow.images || [],
         documents: selectedRow.documents || [],
         status: selectedRow.status || "active",
       }
     : {
-        currency_code: "USD",
         status: "active",
+        listing_sections: [],
       };
 
   return (

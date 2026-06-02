@@ -18,7 +18,7 @@ import { uploadToTempBucket, getPathFromUrl, deleteFromBucket } from "@/lib/supa
 /* TYPES */
 /* -------------------------------- */
 
-export type FieldType = "text" | "textarea" | "number" | "date" | "datetime" | "image" | "document" | "airport" | "select";
+export type FieldType = "text" | "textarea" | "number" | "date" | "datetime" | "image" | "document" | "airport" | "select" | "listing_sections";
 
 export interface FormFieldConfig {
   name: string;
