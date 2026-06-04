@@ -5,8 +5,18 @@
 import { useState, useRef, useEffect } from "react";
 import { MapPin, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 
 export interface Airport {
   id: string;
@@ -26,7 +36,12 @@ interface AirportSearchProps {
   disabled?: boolean;
 }
 
-export function AirportSearch({ value, onChange, placeholder = "Select airport", disabled = false }: AirportSearchProps) {
+export function AirportSearch({
+  value,
+  onChange,
+  placeholder = "Select airport",
+  disabled = false,
+}: AirportSearchProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Airport[]>([]);
@@ -74,9 +89,12 @@ export function AirportSearch({ value, onChange, placeholder = "Select airport",
       const controller = new AbortController();
       abortControllerRef.current = controller;
       try {
-        const res = await fetch(`/api/airports/search?q=${encodeURIComponent(term)}`, {
-          signal: controller.signal,
-        });
+        const res = await fetch(
+          `/api/airports/search?q=${encodeURIComponent(term)}`,
+          {
+            signal: controller.signal,
+          },
+        );
         if (!res.ok) {
           console.error("Fetch failed:", res.status);
           setResults([]);
@@ -136,7 +154,9 @@ export function AirportSearch({ value, onChange, placeholder = "Select airport",
           className={`w-full justify-start ${disabled ? "bg-input/50 text-foreground cursor-not-allowed" : ""}`}
         >
           <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-          {value?.id ? `${value.city || value.name || "Airport"} (${value.iata || value.icao || "?"})` : placeholder}
+          {value?.id
+            ? `${value.city || value.name || "Airport"} (${value.iata || value.icao || "?"})`
+            : placeholder}
         </Button>
       </PopoverTrigger>
 
@@ -144,7 +164,13 @@ export function AirportSearch({ value, onChange, placeholder = "Select airport",
         <PopoverContent className="w-xs p-0" align="start">
           <Command shouldFilter={false}>
             <div className="relative">
-              <CommandInput placeholder="Search airport..." value={search} onValueChange={handleSearch} autoFocus className="pr-10" />
+              <CommandInput
+                placeholder="Search airport..."
+                value={search}
+                onValueChange={handleSearch}
+                autoFocus
+                className="pr-10"
+              />
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -155,15 +181,21 @@ export function AirportSearch({ value, onChange, placeholder = "Select airport",
                 ) : null}
               </div>
             </div>
-            {!loading && results.length === 0 && search.trim().length >= 2 && <CommandEmpty>No airport found.</CommandEmpty>}
+            {!loading && results.length === 0 && search.trim().length >= 2 && (
+              <CommandEmpty>No airport found.</CommandEmpty>
+            )}
             {results.length > 0 && (
               <CommandGroup className="max-h-64 overflow-y-auto">
                 {results.map((airport) => (
-                  <CommandItem key={airport.id} onSelect={() => handleSelect(airport)}>
+                  <CommandItem
+                    key={airport.id}
+                    onSelect={() => handleSelect(airport)}
+                  >
                     <div className="flex flex-col">
                       <span>{airport.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {airport.iata || airport.icao} – {airport.city}, {airport.country}
+                        {airport.iata || airport.icao} – {airport.city},{" "}
+                        {airport.country}
                       </span>
                     </div>
                   </CommandItem>
