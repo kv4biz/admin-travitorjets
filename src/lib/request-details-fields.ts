@@ -180,7 +180,6 @@ const AIRCRAFT_INQUIRY_FIELDS: FormFieldConfig[] = [
       { value: "purchase", label: "Purchase" },
     ],
   },
-  { name: "budget", label: "Budget", type: "number", editable: true },
   { name: "comments", label: "Comments", type: "textarea", editable: true },
 ];
 
