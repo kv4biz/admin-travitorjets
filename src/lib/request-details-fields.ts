@@ -101,6 +101,7 @@ const CHARTER_FIELDS: FormFieldConfig[] = [
     type: "datetime",
     editable: true,
   },
+
   {
     name: "aircraft_class_id",
     label: "Aircraft Class",
@@ -180,7 +181,13 @@ const AIRCRAFT_INQUIRY_FIELDS: FormFieldConfig[] = [
       { value: "purchase", label: "Purchase" },
     ],
   },
-  { name: "comments", label: "Comments", type: "textarea", editable: true },
+  { name: "comments", label: "Comments", type: "textarea", editable: false },
+  {
+    name: "additional_info",
+    label: "Additional Info",
+    type: "textarea",
+    editable: true,
+  },
 ];
 
 export function getRequestDetailsFields(type: string): FormFieldConfig[] {
