@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 //src/components/dashboard/forms/FormFields.tsx
 "use client";
-
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 
@@ -30,6 +31,109 @@ interface FormFieldsProps {
   onFileStaged: (fieldName: string, file: { url: string; tempPath: string }) => void;
   onStagedFileRemoved: (fieldName: string, url: string) => void;
   onExistingFileMarkedForRemoval: (fieldName: string, url: string) => void;
+}
+
+/**
+ * Intelligent Select Option component processing both local fallback configurations
+ * and dynamic asynchronous dependency chains.
+ */
+function DynamicSelect({ field, form, disabled }: { field: FormFieldConfig; form: any; disabled: boolean }) {
+  const [computedOptions, setComputedOptions] = useState<{ value: string; label: string }[]>(field.options || []);
+  const [loading, setLoading] = useState(false);
+
+  // Safely watch target parent structural field context dependencies
+  const dependsOnValue = field.dependsOn ? form.watch(field.dependsOn) : undefined;
+  const previousDependsOnValue = useRef<string | undefined>(dependsOnValue);
+
+  useEffect(() => {
+    // 1. Immediate fallback sequence if static options configuration lacks remote routes
+    if (!field.apiEndpoint) {
+      setComputedOptions(field.options ?? []);
+      return;
+    }
+
+    // 2. Clear out subordinate state collections if master option is deselected
+    if (field.dependsOn && !dependsOnValue) {
+      setComputedOptions([]);
+      if (form.getValues(field.name)) {
+        form.setValue(field.name, "");
+      }
+      previousDependsOnValue.current = undefined;
+      return;
+    }
+
+    // 3. Structural update reset validation checks (skips if it matches original mount parameters)
+    if (field.dependsOn && dependsOnValue !== previousDependsOnValue.current) {
+      if (previousDependsOnValue.current !== undefined) {
+        form.setValue(field.name, "");
+      }
+      previousDependsOnValue.current = dependsOnValue;
+    }
+
+    // 4. Request orchestration with automated AbortController integration
+    const controller = new AbortController();
+    let url = field.apiEndpoint;
+
+    if (field.dependsOn && dependsOnValue) {
+      const queryParam = field.dependsOnKey || `filter_${field.dependsOn}`;
+      url += url.includes("?") ? "&" : "?";
+      url += `${queryParam}=${encodeURIComponent(dependsOnValue)}`;
+    }
+
+    setLoading(true);
+    fetch(url, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((json) => {
+        const payloadItems = json.data || json.results || json.items || json.records || [];
+        const mappedOptions = payloadItems.map((item: any) => ({
+          value: String(item.id ?? item.value ?? item.uuid ?? item.code),
+          label: item.label ?? item.name ?? item.aircraft_model ?? item.title ?? "Unknown Option",
+        }));
+        setComputedOptions(mappedOptions);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error(`Dynamic options load error inside field '${field.name}':`, err);
+          setComputedOptions([]);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [field.apiEndpoint, field.options, field.dependsOn, field.dependsOnKey, dependsOnValue, field.name, form]);
+
+  const selectedValue = form.watch(field.name) ?? "";
+
+  if (disabled) {
+    const selectedOption = computedOptions.find((opt) => opt.value === selectedValue);
+
+    return (
+      <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm text-gray-500">
+        {selectedOption?.label || field.options?.find((o) => o.value === selectedValue)?.label || selectedValue || "—"}
+      </div>
+    );
+  }
+
+  return (
+    <Select value={selectedValue} onValueChange={(v) => form.setValue(field.name, v)} disabled={loading}>
+      <SelectTrigger>
+        <SelectValue placeholder={loading ? "Loading available options..." : field.placeholder} />
+      </SelectTrigger>
+      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
+        {computedOptions.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 }
 
 export function FormFields({
@@ -69,10 +173,14 @@ export function FormFields({
 
             <FieldContent>
               {/* TEXT */}
-              {field.type === "text" && <Input {...form.register(field.name)} placeholder={field.placeholder} disabled={isFieldDisabled} />}
+              {field.type === "text" && (
+                <Input {...form.register(field.name)} placeholder={field.placeholder} disabled={isFieldDisabled} />
+              )}
 
               {/* TEXTAREA */}
-              {field.type === "textarea" && <Textarea {...form.register(field.name)} placeholder={field.placeholder} disabled={isFieldDisabled} />}
+              {field.type === "textarea" && (
+                <Textarea {...form.register(field.name)} placeholder={field.placeholder} disabled={isFieldDisabled} />
+              )}
 
               {/* NUMBER */}
               {field.type === "number" && (
@@ -123,29 +231,7 @@ export function FormFields({
               )}
 
               {/* SELECT */}
-              {field.type === "select" &&
-                (() => {
-                  const selectedValue = (value as string) ?? "";
-                  if (disabled) {
-                    const selectedOption = field.options?.find((opt) => opt.value === selectedValue);
-                    return <div className="h-10 flex items-center px-3 border rounded-md bg-muted">{selectedOption?.label || "—"}</div>;
-                  }
-                  return (
-                    <Select value={selectedValue} onValueChange={(v) => form.setValue(field.name, v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={field.placeholder} />
-                      </SelectTrigger>
-                      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
-                        {field.options?.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  );
-                })()}
-
+              {field.type === "select" && <DynamicSelect field={field} form={form} disabled={!!isFieldDisabled} />}
               {/* AIRPORT */}
               {field.type === "airport" &&
                 (() => {

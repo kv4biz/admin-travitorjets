@@ -101,13 +101,13 @@ const CHARTER_FIELDS: FormFieldConfig[] = [
     type: "datetime",
     editable: true,
   },
-
   {
     name: "aircraft_class_id",
     label: "Aircraft Class",
     type: "select",
     placeholder: "Select class",
     editable: true,
+    apiEndpoint: "/api/aircraft-classes", // Loads classes from backend on mount
   },
   {
     name: "aircraft_type_id",
@@ -115,6 +115,9 @@ const CHARTER_FIELDS: FormFieldConfig[] = [
     type: "select",
     placeholder: "Select type",
     editable: true,
+    apiEndpoint: "/api/aircraft-types", // Fetches dynamic subcategories
+    dependsOn: "aircraft_class_id", // Watches parent structural updates
+    dependsOnKey: "filter_aircraft_class_id", // Target URL param matching your API router
   },
   { name: "passengers", label: "Passengers", type: "number", editable: true },
   {
@@ -130,9 +133,9 @@ const CHARTER_FIELDS: FormFieldConfig[] = [
     editable: false,
   },
   {
-    name: "date_range_days",
-    label: "Date Range (days)",
-    type: "number",
+    name: "date_range_option",
+    label: "Date Range",
+    type: "text",
     editable: false,
   },
   { name: "radius_km", label: "Radius (km)", type: "number", editable: false },

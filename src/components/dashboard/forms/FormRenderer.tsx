@@ -9,12 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-import {
-  getPathFromUrl,
-  deleteFromBucket,
-  moveTempToFinal,
-  generateStoragePath,
-} from "@/lib/supabase/storage";
+import { getPathFromUrl, deleteFromBucket, moveTempToFinal, generateStoragePath } from "@/lib/supabase/storage";
 import { createClient } from "@/lib/client";
 
 import { FormFields } from "./FormFields";
@@ -47,6 +42,9 @@ export interface FormFieldConfig {
   maxFiles?: number;
   editable?: boolean;
   render?: (value: unknown) => React.ReactNode;
+  apiEndpoint?: string; // NEW: Rest endpoint source route
+  dependsOn?: string; // NEW: Form structural key dependency target
+  dependsOnKey?: string;
 }
 
 interface FormRendererProps<TSchema extends ZodTypeAny> {
@@ -82,12 +80,8 @@ export function FormRenderer<TSchema extends ZodTypeAny>({
   const form = useForm({ defaultValues });
   const initialValuesRef = useRef(defaultValues);
 
-  const [stagedFiles, setStagedFiles] = useState<
-    Record<string, { url: string; tempPath: string }[]>
-  >({});
-  const [removedExistingFiles, setRemovedExistingFiles] = useState<
-    Record<string, Set<string>>
-  >({});
+  const [stagedFiles, setStagedFiles] = useState<Record<string, { url: string; tempPath: string }[]>>({});
+  const [removedExistingFiles, setRemovedExistingFiles] = useState<Record<string, Set<string>>>({});
 
   // Expose form to parent
   useEffect(() => {
@@ -102,36 +96,27 @@ export function FormRenderer<TSchema extends ZodTypeAny>({
     setRemovedExistingFiles({});
   }, [defaultValues, form]);
 
-  const handleFileStaged = useCallback(
-    (fieldName: string, stagedFile: { url: string; tempPath: string }) => {
-      setStagedFiles((prev) => ({
-        ...prev,
-        [fieldName]: [...(prev[fieldName] || []), stagedFile],
-      }));
-    },
-    [],
-  );
+  const handleFileStaged = useCallback((fieldName: string, stagedFile: { url: string; tempPath: string }) => {
+    setStagedFiles((prev) => ({
+      ...prev,
+      [fieldName]: [...(prev[fieldName] || []), stagedFile],
+    }));
+  }, []);
 
-  const handleStagedFileRemoved = useCallback(
-    (fieldName: string, url: string) => {
-      setStagedFiles((prev) => ({
-        ...prev,
-        [fieldName]: (prev[fieldName] || []).filter((sf) => sf.url !== url),
-      }));
-    },
-    [],
-  );
+  const handleStagedFileRemoved = useCallback((fieldName: string, url: string) => {
+    setStagedFiles((prev) => ({
+      ...prev,
+      [fieldName]: (prev[fieldName] || []).filter((sf) => sf.url !== url),
+    }));
+  }, []);
 
-  const handleExistingFileMarkedForRemoval = useCallback(
-    (fieldName: string, url: string) => {
-      setRemovedExistingFiles((prev) => {
-        const currentSet = prev[fieldName] || new Set<string>();
-        currentSet.add(url);
-        return { ...prev, [fieldName]: currentSet };
-      });
-    },
-    [],
-  );
+  const handleExistingFileMarkedForRemoval = useCallback((fieldName: string, url: string) => {
+    setRemovedExistingFiles((prev) => {
+      const currentSet = prev[fieldName] || new Set<string>();
+      currentSet.add(url);
+      return { ...prev, [fieldName]: currentSet };
+    });
+  }, []);
 
   const handleCancel = useCallback(async () => {
     // Clean up all temporarily staged files
@@ -139,8 +124,7 @@ export function FormRenderer<TSchema extends ZodTypeAny>({
       const files = stagedFiles[fieldName];
       for (const file of files) {
         try {
-          const bucket =
-            fields.find((f) => f.name === fieldName)?.bucket || "uploads";
+          const bucket = fields.find((f) => f.name === fieldName)?.bucket || "uploads";
           const path = getPathFromUrl(file.url, bucket);
           await deleteFromBucket({ bucket, paths: [path] });
         } catch (err) {
@@ -168,11 +152,7 @@ export function FormRenderer<TSchema extends ZodTypeAny>({
 
       // Convert number strings to actual numbers
       for (const field of fields) {
-        if (
-          field.type === "number" &&
-          processedData[field.name] !== undefined &&
-          processedData[field.name] !== ""
-        ) {
+        if (field.type === "number" && processedData[field.name] !== undefined && processedData[field.name] !== "") {
           const num = Number(processedData[field.name]);
           processedData[field.name] = isNaN(num) ? undefined : num;
         }
@@ -260,8 +240,7 @@ export function FormRenderer<TSchema extends ZodTypeAny>({
       for (const field of fields) {
         if (field.type !== "image" && field.type !== "document") continue;
         const bucket = field.bucket || "uploads";
-        const removedSet =
-          removedExistingFiles[field.name] || new Set<string>();
+        const removedSet = removedExistingFiles[field.name] || new Set<string>();
         for (const url of removedSet) {
           try {
             const path = getPathFromUrl(url, bucket);
@@ -291,10 +270,7 @@ export function FormRenderer<TSchema extends ZodTypeAny>({
   const isUploadingAny = Object.values(uploading).some(Boolean);
 
   return (
-    <form
-      onSubmit={form.handleSubmit(submitHandler)}
-      className="h-full flex flex-col min-h-0"
-    >
+    <form onSubmit={form.handleSubmit(submitHandler)} className="h-full flex flex-col min-h-0">
       <ScrollArea className="flex-1 min-h-0 overflow-hidden px-4 lg:px-2">
         <div className="space-y-4 mb-4">
           <FormFields
