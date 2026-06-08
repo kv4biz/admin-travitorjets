@@ -3,7 +3,7 @@
 // src/app/(dashboard)/requests/[id]/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/client";
 import { RequestHeader } from "@/components/dashboard/requests/RequestHeader";
@@ -44,6 +44,16 @@ export default function RequestDetailPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
+  // ✅ 1. ADD MARK AS READ FUNCTION
+  const markMessagesAsRead = useCallback(async () => {
+    if (!id) return;
+    try {
+      await fetch(`/api/requests/${id}/messages/read`, { method: "PATCH" });
+    } catch (err) {
+      console.error("Failed to mark messages as read:", err);
+    }
+  }, [id]);
+
   // ---------- Initial fetch ----------
   useEffect(() => {
     if (!id) return;
@@ -63,7 +73,16 @@ export default function RequestDetailPage() {
           setRequest(json.data);
           const msgRes = await fetch(`/api/requests/${id}/messages`);
           const msgJson = await msgRes.json();
-          setMessages(msgJson.data || []);
+          const fetchedMessages: Message[] = msgJson.data || [];
+          setMessages(fetchedMessages);
+
+          // ✅ 2. TRIGGER ON INITIAL LOAD: If there are unread incoming messages, mark them read
+          const hasUnread = fetchedMessages.some((m) => !m.read && m.sender_id !== user?.id);
+          if (hasUnread) {
+            await markMessagesAsRead();
+            // Optimistically update local state to reflect read status instantly
+            setMessages((prev) => prev.map((m) => (m.sender_id !== user?.id ? { ...m, read: true } : m)));
+          }
         }
       } catch (err) {
         setRequest(null);
@@ -73,11 +92,11 @@ export default function RequestDetailPage() {
     }
 
     fetchData();
-  }, [id, supabase]);
+  }, [id, supabase, markMessagesAsRead]);
 
   // ---------- Real‑time subscription ----------
   useEffect(() => {
-    if (!id) return;
+    if (!id || !currentUserId) return; // Wait for currentUserId to avoid race conditions
 
     const channel = supabase
       .channel(`messages-${id}`)
@@ -101,6 +120,28 @@ export default function RequestDetailPage() {
               if (prev.some((m) => m.id === fullMsg.id)) return prev;
               return [...prev, fullMsg as Message];
             });
+
+            // ✅ 3. TRIGGER ON NEW INCOMING MESSAGE: If it's from someone else, we are looking at the screen, so read it
+            if (fullMsg.sender_id !== currentUserId) {
+              await markMessagesAsRead();
+              // Update local state state to mark it read immediately
+              setMessages((prev) => prev.map((m) => (m.id === fullMsg.id ? { ...m, read: true } : m)));
+            }
+          }
+        },
+      )
+      // ✅ 4. BONUS: Listen for read status UPDATES from other users
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `request_id=eq.${id}`,
+        },
+        (payload) => {
+          if (payload.new.read === true) {
+            setMessages((prev) => prev.map((m) => (m.id === payload.new.id ? { ...m, read: true } : m)));
           }
         },
       )
@@ -109,7 +150,7 @@ export default function RequestDetailPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, supabase]);
+  }, [id, supabase, currentUserId, markMessagesAsRead]);
 
   // ---------- Send message ----------
   const handleSend = async (content: string, attachmentUrls: string[]) => {
@@ -156,13 +197,20 @@ export default function RequestDetailPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <RequestHeader request={request} isAssigned={isAssigned} onClose={() => window.location.reload()} onDetailsUpdated={handleDetailsUpdated} />
+      <RequestHeader
+        request={request}
+        isAssigned={isAssigned}
+        onClose={() => window.location.reload()}
+        onDetailsUpdated={handleDetailsUpdated}
+      />
 
       {/* Chat messages */}
       <MessageList messages={messages} currentUserId={currentUserId!} />
 
       {/* Message input */}
-      {isAssigned && request.status !== "closed" && <MessageInput requestId={id!} onSend={handleSend} disabled={false} />}
+      {isAssigned && request.status !== "closed" && (
+        <MessageInput requestId={id!} onSend={handleSend} disabled={false} />
+      )}
     </div>
   );
 }
