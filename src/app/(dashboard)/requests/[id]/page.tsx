@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+//src/app/(dashboard)/requests/[id]/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/(dashboard)/requests/[id]/page.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -44,13 +44,18 @@ export default function RequestDetailPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // ✅ 1. ADD MARK AS READ FUNCTION
-  const markMessagesAsRead = useCallback(async () => {
+  // ✅ CONSOLIDATED CORE FETCH FUNCTION
+  // Hits the updated message API route which natively marks incoming messages as read
+  const fetchMessagesAndSyncRead = useCallback(async () => {
     if (!id) return;
     try {
-      await fetch(`/api/requests/${id}/messages/read`, { method: "PATCH" });
+      const msgRes = await fetch(`/api/requests/${id}/messages`);
+      const msgJson = await msgRes.json();
+      if (msgRes.ok) {
+        setMessages(msgJson.data || []);
+      }
     } catch (err) {
-      console.error("Failed to mark messages as read:", err);
+      console.error("Error synchronizing messages:", err);
     }
   }, [id]);
 
@@ -71,18 +76,8 @@ export default function RequestDetailPage() {
           setRequest(null);
         } else {
           setRequest(json.data);
-          const msgRes = await fetch(`/api/requests/${id}/messages`);
-          const msgJson = await msgRes.json();
-          const fetchedMessages: Message[] = msgJson.data || [];
-          setMessages(fetchedMessages);
-
-          // ✅ 2. TRIGGER ON INITIAL LOAD: If there are unread incoming messages, mark them read
-          const hasUnread = fetchedMessages.some((m) => !m.read && m.sender_id !== user?.id);
-          if (hasUnread) {
-            await markMessagesAsRead();
-            // Optimistically update local state to reflect read status instantly
-            setMessages((prev) => prev.map((m) => (m.sender_id !== user?.id ? { ...m, read: true } : m)));
-          }
+          // Handles state retrieval and database status flags in one operation
+          await fetchMessagesAndSyncRead();
         }
       } catch (err) {
         setRequest(null);
@@ -92,11 +87,11 @@ export default function RequestDetailPage() {
     }
 
     fetchData();
-  }, [id, supabase, markMessagesAsRead]);
+  }, [id, supabase, fetchMessagesAndSyncRead]);
 
   // ---------- Real‑time subscription ----------
   useEffect(() => {
-    if (!id || !currentUserId) return; // Wait for currentUserId to avoid race conditions
+    if (!id || !currentUserId) return;
 
     const channel = supabase
       .channel(`messages-${id}`)
@@ -116,21 +111,19 @@ export default function RequestDetailPage() {
             .single();
 
           if (fullMsg) {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === fullMsg.id)) return prev;
-              return [...prev, fullMsg as Message];
-            });
-
-            // ✅ 3. TRIGGER ON NEW INCOMING MESSAGE: If it's from someone else, we are looking at the screen, so read it
+            // If the real-time insert belongs to the peer conversationalist,
+            // re-fetch via the core API endpoint to maintain clean unread count sync.
             if (fullMsg.sender_id !== currentUserId) {
-              await markMessagesAsRead();
-              // Update local state state to mark it read immediately
-              setMessages((prev) => prev.map((m) => (m.id === fullMsg.id ? { ...m, read: true } : m)));
+              await fetchMessagesAndSyncRead();
+            } else {
+              setMessages((prev) => {
+                if (prev.some((m) => m.id === fullMsg.id)) return prev;
+                return [...prev, fullMsg as Message];
+              });
             }
           }
         },
       )
-      // ✅ 4. BONUS: Listen for read status UPDATES from other users
       .on(
         "postgres_changes",
         {
@@ -150,7 +143,7 @@ export default function RequestDetailPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, supabase, currentUserId, markMessagesAsRead]);
+  }, [id, supabase, currentUserId, fetchMessagesAndSyncRead]);
 
   // ---------- Send message ----------
   const handleSend = async (content: string, attachmentUrls: string[]) => {

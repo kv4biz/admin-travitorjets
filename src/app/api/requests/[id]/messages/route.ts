@@ -12,11 +12,21 @@ const sendMessageSchema = z.object({
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
 
-  return withAdminAuth(async (_, supabase) => {
+  return withAdminAuth(async (user, supabase) => {
+    // 1. Verify request room existence
     const { data: reqExists } = await supabase.from("requests").select("id").eq("id", id).single();
-
     if (!reqExists) return apiError("Request not found", 404);
 
+    // 2. AUTOMATIC READ OPERATION:
+    // Mark incoming messages as read instantly when fetched by the receiver
+    await supabase
+      .from("messages")
+      .update({ read: true })
+      .eq("request_id", id)
+      .eq("read", false)
+      .neq("sender_id", user.id);
+
+    // 3. Gather messages list to return
     const { data, error } = await supabase
       .from("messages")
       .select("*, sender:sender_id(id, full_name, username, avatar_url)")
@@ -41,8 +51,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       return apiError(validation.error.issues[0].message, 400);
     }
 
-    // 2. Verify request is assigned to current user
-    const { data: reqData, error: reqError } = await supabase.from("requests").select("assigned_staff_id, status").eq("id", id).single();
+    // 2. Verify request details
+    const { data: reqData, error: reqError } = await supabase
+      .from("requests")
+      .select("assigned_staff_id, status")
+      .eq("id", id)
+      .single();
 
     if (reqError || !reqData) {
       console.error("❌ Request not found or error:", reqError);
