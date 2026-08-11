@@ -9,6 +9,14 @@ import { normalizeAircraftCategory } from "@/lib/aircraft-category-map";
 const PEXJET_API_URL = "https://pexjet.com/api/external/empty-legs";
 const PEXJET_TOKEN = process.env.PEXJET_API_TOKEN!;
 const CRON_SECRET = process.env.CRON_SECRET!;
+const AFRICA_DESTINATION_IMAGE_URL =
+  "https://pwykikhlivksuffdjhcm.supabase.co/storage/v1/object/public/avatars/logos/africa-empty-legs.png";
+const PUBLIC_DEPARTURE_CONTINENTS = new Set(["AF", "EU", "AS"]);
+
+function isPublicDepartureContinent(continent: string | null | undefined) {
+  if (!continent) return false;
+  return PUBLIC_DEPARTURE_CONTINENTS.has(continent.trim().toUpperCase());
+}
 
 /* ---------------- TYPES ---------------- */
 
@@ -45,7 +53,9 @@ interface PexJetLeg {
 /* ---------------- SUPABASE ---------------- */
 
 function getSupabaseAdmin(): SupabaseClient {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false },
+  });
 }
 
 /* ---------------- AUTH ---------------- */
@@ -87,35 +97,50 @@ async function upsertAirport(supabase: SupabaseClient, airport: PexJetAirport) {
 
 /* ---------------- FIND AIRPORT ---------------- */
 
-async function findAirportId(supabase: SupabaseClient, iata?: string, icao?: string): Promise<string | null> {
-  if (icao) {
-    const { data } = await supabase.from("airports").select("id").eq("icao", icao).maybeSingle();
+interface MatchedAirport {
+  id: string;
+  name: string;
+  city: string | null;
+  continent: string | null;
+}
 
-    if (data?.id) return data.id;
+async function findAirport(supabase: SupabaseClient, iata?: string, icao?: string): Promise<MatchedAirport | null> {
+  if (icao) {
+    const { data } = await supabase.from("airports").select("id, name, city, continent").eq("icao", icao).maybeSingle();
+
+    if (data) return data;
   }
 
   if (iata) {
-    const { data } = await supabase.from("airports").select("id").eq("iata", iata).maybeSingle();
+    const { data } = await supabase.from("airports").select("id, name, city, continent").eq("iata", iata).maybeSingle();
 
-    if (data?.id) return data.id;
+    if (data) return data;
   }
 
   return null;
 }
 
+function createAfricaDestinationDescription(airport: MatchedAirport) {
+  const destination = airport.city ? `${airport.name} in ${airport.city}` : airport.name;
+
+  return `Fly private to ${destination} with this exclusive TraviatorJets empty-leg opportunity. Enjoy a comfortable and convenient journey to your African destination at exceptional value.`;
+}
+
 /* ---------------- MAP PEXJET -> DB ---------------- */
 
 async function mapPexJetToDb(leg: PexJetLeg, supabase: SupabaseClient) {
-  const depAirportId = await findAirportId(supabase, leg.departureAirport?.iataCode, leg.departureAirport?.icaoCode);
+  const depAirport = await findAirport(supabase, leg.departureAirport?.iataCode, leg.departureAirport?.icaoCode);
 
-  const arrAirportId = await findAirportId(supabase, leg.arrivalAirport?.iataCode, leg.arrivalAirport?.icaoCode);
+  const arrAirport = await findAirport(supabase, leg.arrivalAirport?.iataCode, leg.arrivalAirport?.icaoCode);
+  const hasAfricanDestination = arrAirport?.continent === "AF";
+  const hasPublicDeparture = isPublicDepartureContinent(depAirport?.continent);
 
   return {
     external_id: leg.id,
     slug: leg.slug,
 
-    dep_airport_id: depAirportId,
-    arr_airport_id: arrAirportId,
+    dep_airport_id: depAirport?.id ?? null,
+    arr_airport_id: arrAirport?.id ?? null,
 
     departure_time: leg.departureDate,
 
@@ -137,8 +162,12 @@ async function mapPexJetToDb(leg: PexJetLeg, supabase: SupabaseClient) {
     price_type: leg.priceType === "CONTACT" ? "contact" : "fixed",
 
     comment: null,
-    destination_image_url: null,
-    destination_description: null,
+    destination_image_url: hasAfricanDestination ? AFRICA_DESTINATION_IMAGE_URL : null,
+    destination_description:
+      hasAfricanDestination && arrAirport ? createAfricaDestinationDescription(arrAirport) : null,
+    // Import every PexJet leg, but only publish departures from Africa,
+    // Europe, or Asia (including the Middle East).
+    is_public: hasPublicDeparture,
   };
 }
 
@@ -191,7 +220,6 @@ async function runSync() {
           ...mapped,
           source: "pexjet",
           owner_type: "pexjet",
-          is_public: false,
           external_updated_at: new Date().toISOString(),
         },
         { onConflict: "external_id" },

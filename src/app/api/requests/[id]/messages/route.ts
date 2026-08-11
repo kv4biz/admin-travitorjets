@@ -19,12 +19,18 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     // 2. AUTOMATIC READ OPERATION:
     // Mark incoming messages as read instantly when fetched by the receiver
-    await supabase
+    const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      auth: { persistSession: false },
+    });
+
+    const { error: readError } = await serviceClient
       .from("messages")
       .update({ read: true })
       .eq("request_id", id)
       .eq("read", false)
       .neq("sender_id", user.id);
+
+    if (readError) return apiError(readError.message, 500);
 
     // 3. Gather messages list to return
     const { data, error } = await supabase
@@ -72,11 +78,21 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       return apiError("Cannot send messages to a closed request", 400);
     }
 
-    // 3. Insert message using service client (bypasses RLS)
+    // Replying means the sender has seen all earlier incoming messages.
     const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
       auth: { persistSession: false },
     });
 
+    const { error: readError } = await serviceClient
+      .from("messages")
+      .update({ read: true })
+      .eq("request_id", id)
+      .eq("read", false)
+      .neq("sender_id", user.id);
+
+    if (readError) return apiError(readError.message, 500);
+
+    // 3. Insert message using service client (bypasses RLS)
     const { data, error } = await serviceClient
       .from("messages")
       .insert({
@@ -84,6 +100,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         sender_id: user.id,
         content: validation.data.content,
         attachment_urls: validation.data.attachment_urls ?? [],
+        read: false,
       })
       .select()
       .single();

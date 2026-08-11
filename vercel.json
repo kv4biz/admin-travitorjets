@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/empty-legs/sync",
-      "schedule": "0 2 * * *"
+      "schedule": "0 2 * * 0"
     }
   ]
 }
